@@ -1077,12 +1077,12 @@ class Utils {
 class TimeSupport {
   private:
     const unsigned long ONE_DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
-    unsigned long lastSync = millis(); // store millis() for lastSync as unsigned long
+    unsigned long lastSyncMillis = millis(); // store millis() for lastSyncMillis as unsigned long
     String timeZoneString;
 
     String getSettings() {
         String json("{");
-        JSonizer::addFirstSetting(json, "lastSync", String(lastSync));
+        JSonizer::addFirstSetting(json, "lastSyncMillis", String(lastSyncMillis));
         JSonizer::addSetting(json, "timeZoneOffset", String(timeZoneOffset));
         JSonizer::addSetting(json, "timeZoneString", String(timeZoneString));
         JSonizer::addSetting(json, "internalTime", nowZ());
@@ -1098,6 +1098,7 @@ class TimeSupport {
         this->timeZoneString = timeZoneString;
         Time.zone(timeZoneOffset);
         Particle.syncTime();
+        lastSyncMillis = millis();
     }
 
     String timeStrZ(time_t t) {
@@ -1112,10 +1113,10 @@ class TimeSupport {
     }
 
     void handleTime() {
-        if (millis() - lastSync > ONE_DAY_IN_MILLISECONDS) {    // If it's been a day since last sync...
+        if (millis() - lastSyncMillis > ONE_DAY_IN_MILLISECONDS) {    // If it's been a day since last sync...
                                                                 // Request time synchronization from the Particle Cloud
             Particle.syncTime();
-            lastSync = millis();
+            lastSyncMillis = millis();
         }
     }
 
