@@ -1021,98 +1021,181 @@ int16_t GridEYE::getRegister(unsigned char reg, int8_t len)
                          
 }
 
-GridEYE grideye;
-
 // ------- --------- --------- --------- ---------
-const String githubHash = "TODO";
+const String githubHash = "to be replaced manually (and code re-flashed) after 'git push'";
 
-void publish(String event, String data) {
-    Particle.publish(event, data, 1, PRIVATE);
-    delay(1000);
-}
+#include <limits.h>
 
-class TimeSync {
-    private:
-        const unsigned long ONE_DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
-        unsigned long lastSync = millis();
-    public:
-        void sync() {
-            if (millis() - lastSync > ONE_DAY_IN_MILLISECONDS) {
-                Particle.syncTime();
-                lastSync = millis();
-            }
+class JSonizer {
+  public:
+    static void addFirstSetting(String& json, String key, String val) {
+        json.concat("\"");
+        json.concat(key);
+        json.concat("\":\"");
+        json.concat(val);
+        json.concat("\"");
+    }
+
+    static void addSetting(String& json, String key, String val) {
+        json.concat(",");
+        addFirstSetting(json, key, val);
+    }
+    
+    static String toString(bool b) {
+        if (b) {
+            return "true";
         }
+        return "false";
+    }
 };
 
-TimeSync timeSync = TimeSync();
+class Utils {
+  public:
+    const static int publishRateInSeconds = 5;
 
-float getAverage() {
-  float total = 0;
-  for (int i = 0; i < 64; i++) {
-    total += grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0;
+    static int setInt(String command, int& i, int lower, int upper) {
+        int tempMin = command.toInt();
+        if (tempMin > lower && tempMin < upper) {
+            i = tempMin;
+            return 1;
+        }
+        return -1;
+    }
+    static void publish(String event, String data) {
+        Particle.publish(event, data, 1, PRIVATE);
+        delay(1000); // will be rate-limited if we send more than 1 per second.
+    }
+    static void publishJson() {
+        String json("{");
+        JSonizer::addFirstSetting(json, "githubHash", githubHash);
+        JSonizer::addSetting(json, "publishRateInSeconds", String(publishRateInSeconds));
+        json.concat("}");
+        publish("Utils json", json);
+    }
+};
+
+class TimeSupport {
+  private:
+    const unsigned long ONE_DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
+    unsigned long lastSync = millis(); // store millis() for lastSync as unsigned long
+    String timeZoneString;
+
+    String getSettings() {
+        String json("{");
+        JSonizer::addFirstSetting(json, "lastSync", String(lastSync));
+        JSonizer::addSetting(json, "timeZoneOffset", String(timeZoneOffset));
+        JSonizer::addSetting(json, "timeZoneString", String(timeZoneString));
+        JSonizer::addSetting(json, "internalTime", nowZ());
+        json.concat("}");
+        return json;
+    }
+
+  public:
+    int timeZoneOffset;
+
+    TimeSupport(int timeZoneOffset, String timeZoneString) {
+        this->timeZoneOffset = timeZoneOffset;
+        this->timeZoneString = timeZoneString;
+        Time.zone(timeZoneOffset);
+        Particle.syncTime();
+    }
+
+    String timeStrZ(time_t t) {
+        String fmt("%a %b %d %H:%M:%S ");
+        fmt.concat(timeZoneString);
+        fmt.concat(" %Y");
+        return Time.format(t, fmt);
+    }
+
+    String nowZ() {
+        return timeStrZ(Time.now());
+    }
+
+    void handleTime() {
+        if (millis() - lastSync > ONE_DAY_IN_MILLISECONDS) {    // If it's been a day since last sync...
+                                                                // Request time synchronization from the Particle Cloud
+            Particle.syncTime();
+            lastSync = millis();
+        }
+    }
+
+    int setTimeZoneOffset(String command) {
+        timeZoneString = "???";
+        return Utils::setInt(command, timeZoneOffset, -24, 24);
+    }
+
+    void publishJson() {
+        Utils::publish("TimeSupport", getSettings());
+    }
+};
+TimeSupport    timeSupport(-8, "PST");
+
+class GridEyeSupport {
+private:
+  String  mostRecentData;
+
+public:
+  GridEYE grideye;
+
+  int publishData() {
+    float total = 0;
+    mostRecentData = String("");
+    for (int i = 0; i < 64; i++) {
+      int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
+      total += t;
+      if (i > 0) {
+        mostRecentData.concat(",");
+      }
+      mostRecentData.concat(String(t));
+    }
+    Utils::publish("IR heat sensor 1", String((int)(total / 64)));
+    return 1;
   }
-  return total / 64;
-}
 
-int publishAvg(String command) {
-  String s = String(getAverage());
-  publish("IR heat sensor 1", s);
-//  oledWrapper.printTitle(s, 1);
-  return 1;
-}
-
-int publishAll(String command) {
-  String vals = String();
-  for (int i = 0; i < 64; i++) {
-    int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
-    vals.concat(t);
-    vals.concat(" ");
+  void publishJson() {
+        String json("{");
+        JSonizer::addFirstSetting(json, "address", String((int)grideye.getI2CAddress()));
+        JSonizer::addSetting(json, "mostRecentData", mostRecentData);
+        json.concat("}");
+        Utils::publish("Grideye json", json);
   }
-  publish("IR heat sensor 1 All", vals);
-  return 1;
+};
+GridEyeSupport gridEyeSupport;
+
+int pubData(String command) {
+  return gridEyeSupport.publishData();
 }
 
-int publishCfg(String command) {
-    String s = String("GridEye address : ");
-    s.concat((int)grideye.getI2CAddress());
-    publish("Device config", s);
+// getSettings() is already defined somewhere.
+int pubSettings(String command) {
+    if (command.compareTo("") == 0) {
+        Utils::publishJson();
+    } else if (command.compareTo("time") == 0) {
+        timeSupport.publishJson();
+    } else if (command.compareTo("grideye") == 0) {
+        gridEyeSupport.publishJson();
+    } else {
+        Utils::publish("GetSettings bad input", command);
+    }
     return 1;
 }
 
-int publishRate = 59; // once a minute.
-int setPublishRate(String command) {
-    int tempMin = command.toInt();
-    if (tempMin > 0 && tempMin < 60) {
-        publishRate = tempMin;
-        return 1;
-    }
-    return -1;
-}
-
 void setup() {
-  Particle.syncTime();
-
-  // Start your preferred I2C object 
+  // Start your preferred I2C object
   Wire.begin();
   // Library assumes "Wire" for I2C but you can pass something else with begin() if you like
-  grideye.begin();
-  // Pour a bowl of serial
+  gridEyeSupport.grideye.begin();
   Serial.begin(115200);
-  Particle.function("publishAvg", publishAvg);
-  Particle.function("publishAll", publishAll);
-  Particle.function("publishCfg", publishCfg);
-  Particle.function("setPublish", setPublishRate);
-  Particle.variable("GitHubHash", githubHash);
-  Particle.variable("PublishRate", publishRate);
+
+  Particle.function("publishData", pubData);
+  Particle.function("getSettings", pubSettings);
   delay(2000);
-  publishAvg("");
-  publishAll("");
+  gridEyeSupport.publishData();
 }
 
 void loop() {
-    timeSync.sync();
-    if ((Time.second() % publishRate) == 0) {
-        publishAvg("");
-        delay(1000);
-    }
+  timeSupport.handleTime();
+  if ((Time.second() % Utils::publishRateInSeconds) == 0) {
+    gridEyeSupport.publishData();
+  }
 }
