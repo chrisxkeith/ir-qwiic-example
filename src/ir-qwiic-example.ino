@@ -1131,12 +1131,48 @@ class TimeSupport {
 };
 TimeSupport    timeSupport(-8, "PST");
 
+#include <SparkFunMicroOLED.h>
+// https://learn.sparkfun.com/tutorials/photon-oled-shield-hookup-guide
+#include <math.h>
+
+class OLEDWrapper {
+  private:
+    MicroOLED oled;
+
+    public:
+        OLEDWrapper() {
+            oled.begin();    // Initialize the OLED
+            oled.clear(ALL); // Clear the display's internal memory
+            oled.display();  // Display what's in the buffer (splashscreen)
+            delay(1000);     // Delay 1000 ms
+            oled.clear(PAGE); // Clear the buffer.
+        }
+
+    void display(String title, int font)
+    {
+      oled.clear(PAGE);
+      oled.setFontType(font);
+      oled.setCursor(0, 0);
+      oled.print(title);
+      oled.display();
+    }
+    void publishJson() {
+        String json("{");
+        JSonizer::addFirstSetting(json, "TODO...", "...TODO");
+        json.concat("}");
+        Utils::publish("OLED", json);
+    }
+};
+
+OLEDWrapper oledWrapper;
+
 class GridEyeSupport {
 private:
   String  mostRecentData;
 
 public:
   GridEYE grideye;
+  int     mostRecentValue;
 
   int publishData() {
     float total = 0;
@@ -1149,7 +1185,8 @@ public:
       }
       mostRecentData.concat(String(t));
     }
-    Utils::publish("IR heat sensor 1", String((int)(total / 64)));
+    mostRecentValue = (int)(total / 64);
+    Utils::publish("IR heat sensor 1", String(mostRecentValue));
     return 1;
   }
 
@@ -1175,6 +1212,8 @@ int pubSettings(String command) {
         timeSupport.publishJson();
     } else if (command.compareTo("grideye") == 0) {
         gridEyeSupport.publishJson();
+    } else if (command.compareTo("oled") == 0) {
+        oledWrapper.publishJson();
     } else {
         Utils::publish("GetSettings bad input", command);
     }
@@ -1192,10 +1231,12 @@ void setup() {
   Particle.function("getSettings", pubSettings);
   delay(2000);
   gridEyeSupport.publishData();
+  oledWrapper.display(String(gridEyeSupport.mostRecentValue), 3);
 }
 
 void loop() {
   timeSupport.handleTime();
+  oledWrapper.display(String(gridEyeSupport.mostRecentValue), 3);
   if ((Time.second() % Utils::publishRateInSeconds) == 0) {
     gridEyeSupport.publishData();
   }
