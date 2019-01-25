@@ -30,3 +30,5 @@
 *.exe
 *.out
 *.app
+
+photon_firmware_*
