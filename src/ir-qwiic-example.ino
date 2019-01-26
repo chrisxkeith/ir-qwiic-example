@@ -1166,29 +1166,54 @@ class OLEDWrapper {
 
 OLEDWrapper oledWrapper;
 
+String thermistor_test  = "1c002c001147343438323536";
+String thermistor2_test = "300040001347343438323536";
+String photon_05        = "19002a001347363336383438";
+String photon_06        = "290048001647363335343834";
+
 class GridEyeSupport {
 private:
   String  mostRecentData;
+
+  String getName() {
+    int numericId = INT_MIN;
+    String id = System.deviceID();
+    if (id.equals(thermistor_test)) {
+      numericId = 1;
+    }
+    if (id.equals(thermistor2_test)) {
+      numericId = 2;
+    }
+    if (id.equals(photon_05)) {
+      numericId = 5;
+    }
+    if (id.equals(photon_06)) {
+      numericId = 6;
+    }
+    String ret("IR heat sensor ");
+    ret.concat(String(numericId));
+    return ret;
+  }
 
 public:
   GridEYE grideye;
   int     mostRecentValue;
 
-  int publishData() {
-    float total = 0;
-    mostRecentData = String("");
-    for (int i = 0; i < 64; i++) {
-      int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
-      total += t;
-      if (i > 0) {
-        mostRecentData.concat(",");
-      }
-      mostRecentData.concat(String(t));
+int publishData() {
+  float total = 0;
+  mostRecentData = String("");
+  for (int i = 0; i < 64; i++) {
+    int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
+    total += t;
+    if (i > 0) {
+      mostRecentData.concat(",");
     }
-    mostRecentValue = (int)(total / 64);
-    Utils::publish("IR heat sensor 1", String(mostRecentValue));
-    return 1;
+    mostRecentData.concat(String(t));
   }
+  mostRecentValue = (int)(total / 64);
+  Utils::publish(getName(), String(mostRecentValue));
+  return 1;
+}
 
   void publishJson() {
         String json("{");
