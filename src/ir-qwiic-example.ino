@@ -1199,21 +1199,25 @@ public:
   GridEYE grideye;
   int     mostRecentValue;
 
-int publishData() {
-  float total = 0;
-  mostRecentData = String("");
-  for (int i = 0; i < 64; i++) {
-    int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
-    total += t;
-    if (i > 0) {
-      mostRecentData.concat(",");
+  int readValue() {
+    float total = 0;
+    mostRecentData = String("");
+    for (int i = 0; i < 64; i++) {
+      int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
+      total += t;
+      if (i > 0) {
+        mostRecentData.concat(",");
+      }
+      mostRecentData.concat(String(t));
     }
-    mostRecentData.concat(String(t));
+    mostRecentValue = (int)(total / 64);
+    return mostRecentValue;
   }
-  mostRecentValue = (int)(total / 64);
-  Utils::publish(getName(), String(mostRecentValue));
-  return 1;
-}
+
+  int publishData() {
+    Utils::publish(getName(), String(mostRecentValue));
+    return 1;
+  }
 
   void publishJson() {
         String json("{");
@@ -1261,7 +1265,7 @@ void setup() {
 
 void loop() {
   timeSupport.handleTime();
-  oledWrapper.display(String(gridEyeSupport.mostRecentValue), 3);
+  oledWrapper.display(String(gridEyeSupport.readValue()), 3);
   if ((Time.second() % Utils::publishRateInSeconds) == 0) {
     gridEyeSupport.publishData();
   }
