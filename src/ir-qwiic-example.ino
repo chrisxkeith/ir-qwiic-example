@@ -1274,7 +1274,9 @@ public:
       }
       int x = (i % 8) * xSuperPixelSize;
       int y = (i / 8) * ySuperPixelSize;
-      oledWrapper.superPixel(x, y, xSuperPixelSize, ySuperPixelSize, pixelVal);
+      // This (admittedly confusing) switcheroo of x and y axes is to make the orientation
+      // of the sensor (with logo reading correctly) match the orientation of the OLED.
+      oledWrapper.superPixel(y, x, ySuperPixelSize, xSuperPixelSize, pixelVal);
     }
     oledWrapper.oled.display();
   }
