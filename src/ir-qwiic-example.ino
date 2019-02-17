@@ -1170,6 +1170,7 @@ String thermistor_test  = "1c002c001147343438323536";
 String thermistor2_test = "300040001347343438323536";
 String photon_05        = "19002a001347363336383438";
 String photon_06        = "290048001647363335343834";
+String photon_07        = "32002e000e47363433353735";
 
 class GridEyeSupport {
 private:
@@ -1189,6 +1190,9 @@ private:
     }
     if (id.equals(photon_06)) {
       numericId = 6;
+    }
+    if (id.equals(photon_07)) {
+      numericId = 7;
     }
     String ret("IR heat sensor ");
     ret.concat(String(numericId));
