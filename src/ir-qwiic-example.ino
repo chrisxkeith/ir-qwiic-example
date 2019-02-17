@@ -1172,11 +1172,24 @@ class OLEDWrapper {
             errShown = true;
           }
           int r = rand() % (pixelSize + 1);
-          if (r > val) {
+          if (r < val) { // lower value maps to white pixel.
             oled.pixel(xi, yi);
           }
         }
       }
+    }
+
+    void testPattern() {
+      oled.clear(PAGE);
+      int xSuperPixelSize = 8;
+      int ySuperPixelSize = 6;
+      for (int i = 0; i < 64; i++) {
+        int x = (i % 8) * xSuperPixelSize;
+        int y = (i / 8) * ySuperPixelSize;
+        superPixel(x, y, xSuperPixelSize, ySuperPixelSize, i);
+      }
+      oled.display();
+      delay(5000);
     }
 
     void publishJson() {
@@ -1282,10 +1295,10 @@ class OLEDDisplayer {
     void display() {
       if (showTemp) {
         oledWrapper.display(String(gridEyeSupport.mostRecentValue), 3);
+        delay(1000);
       } else {
-        gridEyeSupport.displayGrid(60, 80);
+        gridEyeSupport.displayGrid(70, 90);
       }
-      delay(1000);
     }
     int switchDisp(String command) {
       showTemp = !showTemp;
@@ -1296,6 +1309,11 @@ OLEDDisplayer oledDisplayer;
 
 int switchDisp(String command) {
   return oledDisplayer.switchDisp(command);
+}
+
+int testPatt(String command) {
+  oledWrapper.testPattern();
+  return 1;
 }
 
 int pubData(String command) {
@@ -1327,7 +1345,8 @@ void setup() {
 
   Particle.function("publishData", pubData);
   Particle.function("getSettings", pubSettings);
-  Particle.function("switchDisp", switchDisp);
+  Particle.function("switchDisplay", switchDisp);
+  Particle.function("testPattern", testPatt);
   delay(2000);
   gridEyeSupport.readValue();
   oledDisplayer.display();
