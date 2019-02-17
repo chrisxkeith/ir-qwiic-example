@@ -1156,10 +1156,23 @@ class OLEDWrapper {
       oled.display();
     }
 
-    void superPixel(int x, int y, int size, int val) {
-      for (int xi = x * size; xi < x * (size + 1); xi++) {
-        for (int yi = y * size; yi < y * (size + 1); yi++) {
-          if ((int)(rand() * size * size) > val) {
+    bool errShown = false;
+    void superPixel(int xStart, int yStart, int xSuperPixelSize, int ySuperPixelSize, int val) {
+      int pixelSize = xSuperPixelSize * ySuperPixelSize;
+      for (int xi = xStart; xi < xStart + xSuperPixelSize; xi++) {
+        for (int yi = yStart; yi < yStart + ySuperPixelSize; yi++) {
+          if (!errShown && (xi > oled.getLCDWidth() || yi > oled.getLCDHeight())) {
+            String json("{");
+            JSonizer::addSetting(json, "xStart", String(xStart));
+            JSonizer::addSetting(json, "yStart", String(yStart));
+            JSonizer::addSetting(json, "xi", String(xi));
+            JSonizer::addSetting(json, "yi", String(yi));
+            json.concat("}");
+            Utils::publish("err", json);
+            errShown = true;
+          }
+          int r = rand() % (pixelSize + 1);
+          if (r > val) {
             oled.pixel(xi, yi);
           }
         }
@@ -1168,7 +1181,8 @@ class OLEDWrapper {
 
     void publishJson() {
         String json("{");
-        JSonizer::addFirstSetting(json, "TODO...", "...TODO");
+        JSonizer::addFirstSetting(json, "getLCDWidth()", String(oled.getLCDWidth()));
+        JSonizer::addSetting(json, "getLCDHeight()", String(oled.getLCDHeight()));
         json.concat("}");
         Utils::publish("OLED", json);
     }
@@ -1232,20 +1246,22 @@ public:
     return 1;
   }
 
-  void displayGrid(OLEDWrapper oledWrapper, int lowestTempInF, int highestTempInF) {
+  void displayGrid(int lowestTempInF, int highestTempInF) {
     oledWrapper.oled.clear(PAGE);
-    int superPixelSize = 6;
+    int xSuperPixelSize = 8;
+    int ySuperPixelSize = 6;
+    int pixelSize = xSuperPixelSize * ySuperPixelSize;
     for (int i = 0; i < 64; i++) {
       int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
-      int pixelVal = map(t, lowestTempInF, highestTempInF, 0, superPixelSize * superPixelSize);
+      int pixelVal = map(t, lowestTempInF, highestTempInF, 0, pixelSize);
       if (pixelVal < 0) {
         pixelVal = 0;
-      } else if (pixelVal > superPixelSize * superPixelSize) {
-        pixelVal = superPixelSize * superPixelSize;
+      } else if (pixelVal > pixelSize) {
+        pixelVal = pixelSize;
       }
-      int x = i % 8;
-      int y = i / 8;
-      oledWrapper.superPixel(x, y, superPixelSize, pixelVal);
+      int x = (i % 8) * xSuperPixelSize;
+      int y = (i / 8) * ySuperPixelSize;
+      oledWrapper.superPixel(x, y, xSuperPixelSize, ySuperPixelSize, pixelVal);
     }
     oledWrapper.oled.display();
   }
@@ -1267,7 +1283,7 @@ class OLEDDisplayer {
       if (showTemp) {
         oledWrapper.display(String(gridEyeSupport.mostRecentValue), 3);
       } else {
-        gridEyeSupport.displayGrid(oledWrapper, 60, 80);
+        gridEyeSupport.displayGrid(60, 80);
       }
       delay(1000);
     }
