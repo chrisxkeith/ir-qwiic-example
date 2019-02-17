@@ -1136,17 +1136,16 @@ TimeSupport    timeSupport(-8, "PST");
 #include <math.h>
 
 class OLEDWrapper {
-  private:
+  public:
     MicroOLED oled;
 
-    public:
-        OLEDWrapper() {
-            oled.begin();    // Initialize the OLED
-            oled.clear(ALL); // Clear the display's internal memory
-            oled.display();  // Display what's in the buffer (splashscreen)
-            delay(1000);     // Delay 1000 ms
-            oled.clear(PAGE); // Clear the buffer.
-        }
+    OLEDWrapper() {
+        oled.begin();    // Initialize the OLED
+        oled.clear(ALL); // Clear the display's internal memory
+        oled.display();  // Display what's in the buffer (splashscreen)
+        delay(1000);     // Delay 1000 ms
+        oled.clear(PAGE); // Clear the buffer.
+    }
 
     void display(String title, int font)
     {
@@ -1156,6 +1155,17 @@ class OLEDWrapper {
       oled.print(title);
       oled.display();
     }
+
+    void superPixel(int x, int y, int size, int val) {
+      for (int xi = x * size; xi < x * (size + 1); xi++) {
+        for (int yi = y * size; yi < y * (size + 1); yi++) {
+          if ((int)(rand() * size * size) > val) {
+            oled.pixel(xi, yi);
+          }
+        }
+      }
+    }
+
     void publishJson() {
         String json("{");
         JSonizer::addFirstSetting(json, "TODO...", "...TODO");
@@ -1163,7 +1173,6 @@ class OLEDWrapper {
         Utils::publish("OLED", json);
     }
 };
-
 OLEDWrapper oledWrapper;
 
 String thermistor_test  = "1c002c001147343438323536";
@@ -1223,6 +1232,24 @@ public:
     return 1;
   }
 
+  void displayGrid(OLEDWrapper oledWrapper, int lowestTempInF, int highestTempInF) {
+    oledWrapper.oled.clear(PAGE);
+    int superPixelSize = 6;
+    for (int i = 0; i < 64; i++) {
+      int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
+      int pixelVal = map(t, lowestTempInF, highestTempInF, 0, superPixelSize * superPixelSize);
+      if (pixelVal < 0) {
+        pixelVal = 0;
+      } else if (pixelVal > superPixelSize * superPixelSize) {
+        pixelVal = superPixelSize * superPixelSize;
+      }
+      int x = i % 8;
+      int y = i / 8;
+      oledWrapper.superPixel(x, y, superPixelSize, pixelVal);
+    }
+    oledWrapper.oled.display();
+  }
+
   void publishJson() {
         String json("{");
         JSonizer::addFirstSetting(json, "address", String((int)grideye.getI2CAddress()));
@@ -1232,6 +1259,28 @@ public:
   }
 };
 GridEyeSupport gridEyeSupport;
+
+class OLEDDisplayer {
+  public:
+    bool showTemp = true;
+    void display() {
+      if (showTemp) {
+        oledWrapper.display(String(gridEyeSupport.mostRecentValue), 3);
+      } else {
+        gridEyeSupport.displayGrid(oledWrapper, 60, 80);
+      }
+      delay(1000);
+    }
+    int switchDisp(String command) {
+      showTemp = !showTemp;
+      return 1;
+    }
+};
+OLEDDisplayer oledDisplayer;
+
+int switchDisp(String command) {
+  return oledDisplayer.switchDisp(command);
+}
 
 int pubData(String command) {
   return gridEyeSupport.publishData();
@@ -1262,14 +1311,17 @@ void setup() {
 
   Particle.function("publishData", pubData);
   Particle.function("getSettings", pubSettings);
+  Particle.function("switchDisp", switchDisp);
   delay(2000);
+  gridEyeSupport.readValue();
+  oledDisplayer.display();
   gridEyeSupport.publishData();
-  oledWrapper.display(String(gridEyeSupport.mostRecentValue), 3);
 }
 
 void loop() {
   timeSupport.handleTime();
-  oledWrapper.display(String(gridEyeSupport.readValue()), 3);
+  gridEyeSupport.readValue();
+  oledDisplayer.display();
   if ((Time.second() % Utils::publishRateInSeconds) == 0) {
     gridEyeSupport.publishData();
   }
