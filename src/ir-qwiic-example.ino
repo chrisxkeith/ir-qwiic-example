@@ -1185,7 +1185,7 @@ class OLEDWrapper {
 
     void testPattern() {
       oled.clear(PAGE);
-      int xSuperPixelSize = 8;
+      int xSuperPixelSize = 6;
       int ySuperPixelSize = 6;
       for (int i = 0; i < 64; i++) {
         int x = (i % 8) * xSuperPixelSize;
@@ -1264,8 +1264,9 @@ public:
   }
 
   void displayGrid(int lowestTempInF, int highestTempInF) {
+    srand(0);
     oledWrapper.oled.clear(PAGE);
-    int xSuperPixelSize = 8;
+    int xSuperPixelSize = 6;
     int ySuperPixelSize = 6;
     int pixelSize = xSuperPixelSize * ySuperPixelSize;
     for (int i = 0; i < 64; i++) {
