@@ -1049,6 +1049,7 @@ class JSonizer {
     }
 };
 
+bool publishDelay = true;
 class Utils {
   public:
     const static int publishRateInSeconds = 5;
@@ -1063,12 +1064,15 @@ class Utils {
     }
     static void publish(String event, String data) {
         Particle.publish(event, data, 1, PRIVATE);
-        delay(1000); // will be rate-limited if we send more than 1 per second.
+        if (publishDelay) {
+          delay(1000); // will be rate-limited if we send more than 1 per second.
+        }
     }
     static void publishJson() {
         String json("{");
         JSonizer::addFirstSetting(json, "githubHash", githubHash);
         JSonizer::addSetting(json, "publishRateInSeconds", String(publishRateInSeconds));
+        JSonizer::addSetting(json, "publishDelay", JSonizer::toString(publishDelay));
         json.concat("}");
         publish("Utils json", json);
     }
@@ -1304,6 +1308,7 @@ class OLEDDisplayer {
     }
     int switchDisp(String command) {
       showTemp = !showTemp;
+      publishDelay = showTemp;
       return 1;
     }
 };
