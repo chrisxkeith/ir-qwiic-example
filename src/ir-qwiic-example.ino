@@ -1344,6 +1344,24 @@ int pubSettings(String command) {
     return 1;
 }
 
+int rawPublish(String command) {
+    String  event(command);
+    String  data(command);
+    int     separatorIndex = command.indexOf(":");
+    if (separatorIndex > 0) { // Not zero, need at least one character for event.
+        event = command.substring(0, separatorIndex);
+        data = command.substring(separatorIndex + 1);
+    } else {
+        int     separatorIndex = command.indexOf("=");
+        if (separatorIndex > 0) { // Not zero, need at least one character for event.
+          event = command.substring(0, separatorIndex);
+          data = command.substring(separatorIndex + 1);
+      }
+    }
+    Utils::publish(event, data);
+    return 1;
+}
+
 void setup() {
   // Start your preferred I2C object
   Wire.begin();
@@ -1355,6 +1373,7 @@ void setup() {
   Particle.function("getSettings", pubSettings);
   Particle.function("switchDisplay", switchDisp);
   Particle.function("testPattern", testPatt);
+  Particle.function("rawPublish", rawPublish);
   delay(2000);
   gridEyeSupport.readValue();
   oledDisplayer.display();

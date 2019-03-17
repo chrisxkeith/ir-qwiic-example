@@ -1,1 +1,5 @@
-{}
+{
+    "particle.targetDevice": "photon-07",
+    "particle.firmwareVersion": "0.8.0-rc.14",
+    "particle.targetPlatform": "photon"
+}
