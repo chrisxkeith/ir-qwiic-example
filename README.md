@@ -1,1 +1,16 @@
 # ir-qwiic-example
+
+Build Steps
+
+*--in progress--*
+
+- cd *parentDirectoryOfYourGithubRepos/*
+- git clone https://github.com/chrisxkeith/ir-qwiic-example.git
+- Upload the code to https://build.particle.io/build/new
+- Find the ID of your Particle Photon (e.g., 1c002c001147343438377736)
+- Add it to the code (search for 'String photon_07')
+- Flash the code to your Photon
+- Test by moving your hand slowly in front of the IR sensor
+- Verify the temperatures in https://console.particle.io/devices
+
+See also : https://docs.google.com/document/d/1y5eezyWU3r2t0xOoZXMUt0avSitQqU7zl2yLdCMw8qY/edit
