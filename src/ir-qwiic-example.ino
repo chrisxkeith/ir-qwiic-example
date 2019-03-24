@@ -1420,14 +1420,23 @@ public:
 GridEyeSupport gridEyeSupport;
 
 class OLEDDisplayer {
+  private:
+    int   minTempInF = 70;      // degrees F that will display as non-black superpixels.
+    int   maxTempInF = 90;
+    int   tempToBlinkInF = 85;  // If at this temperature or above, blink the temperature display.
   public:
     bool showTemp = true;
     void display() {
       if (showTemp) {
-        oledWrapper.display(String(gridEyeSupport.mostRecentValue), 3);
+        int temp = gridEyeSupport.mostRecentValue;
+        if (temp >= tempToBlinkInF) {
+          oledWrapper.oled.clear(ALL);
+          delay(500);
+        }
+        oledWrapper.display(String(temp), 3);
         delay(1000);
       } else {
-        gridEyeSupport.displayGrid(70, 90);
+        gridEyeSupport.displayGrid(minTempInF, maxTempInF);
       }
     }
     int switchDisp(String command) {
@@ -1435,8 +1444,28 @@ class OLEDDisplayer {
       publishDelay = showTemp;
       return 1;
     }
+    int setTempToBlinkInF(String cmd) {
+      int temporary = (int)cmd.toInt();
+      if (temporary != 0) {
+        this->tempToBlinkInF = temporary;
+        return 0;
+      }
+      return -1;
+    }
+    void publishJson() {
+      String json("{");
+      JSonizer::addFirstSetting(json, "minTempInF", String(minTempInF));
+      JSonizer::addSetting(json, "maxTempInF", String(maxTempInF));
+      JSonizer::addSetting(json, "tempToBlinkInF", String(tempToBlinkInF));
+      json.concat("}");
+      Utils::publish("OLEDDisplayer json", json);
+    }
 };
 OLEDDisplayer oledDisplayer;
+
+int setBlinkTemp(String command) {
+  return oledDisplayer.setTempToBlinkInF(command);
+}
 
 int switchDisp(String command) {
   return oledDisplayer.switchDisp(command);
@@ -1461,6 +1490,8 @@ int pubSettings(String command) {
         gridEyeSupport.publishJson();
     } else if (command.compareTo("oled") == 0) {
         oledWrapper.publishJson();
+    } else if (command.compareTo("display") == 0) {
+        oledDisplayer.publishJson();
     } else {
         Utils::publish("GetSettings bad input", command);
     }
@@ -1485,6 +1516,11 @@ int rawPublish(String command) {
     return 1;
 }
 
+int getHelp(String command) {
+    Utils::publish("Code repository", "https://github.com/chrisxkeith/ir-qwiic-example");
+    return 1;
+}
+
 void setup() {
   // Start your preferred I2C object
   Wire.begin();
@@ -1497,6 +1533,8 @@ void setup() {
   Particle.function("switchDisplay", switchDisp);
   Particle.function("testPattern", testPatt);
   Particle.function("rawPublish", rawPublish);
+  Particle.function("setBlinkTemp", setBlinkTemp);
+  Particle.function("getHelp", getHelp);
   delay(2000);
   gridEyeSupport.readValue();
   oledDisplayer.display();
