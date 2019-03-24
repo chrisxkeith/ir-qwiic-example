@@ -1021,7 +1021,7 @@ int16_t GridEYE::getRegister(unsigned char reg, int8_t len)
                          
 }
 
-// ------- --------- --------- --------- ---------
+// Start CK's code ------- --------- --------- --------- ---------
 const String githubHash = "to be replaced manually (and code re-flashed) after 'git push'";
 
 #include <limits.h>
@@ -1049,6 +1049,110 @@ class JSonizer {
     }
 };
 
+// Keeps a queue of messages to publish, and publishes them no faster than
+// 1 / second to avoid Particle publish() limit, without using calls to delay().
+class Publisher {
+  public:
+    const static int NUM_QUEUED_MESSAGES = 20;
+  private:
+    const unsigned int WAIT_IN_MILLIS = 1100;     // Give 100 ms extra to increase odds that message will not be discarded.
+    String    queued_events[NUM_QUEUED_MESSAGES]; // Circular buffers for queued events and datas.
+    String    queued_datas[NUM_QUEUED_MESSAGES];
+    int       nextAvailableIndex = 0;             // Can point to the last queued item if the queue is full.
+                                                  // The last item will be the one overwritten if the queue is full.
+    int       nextToBePublishedIndex = 0;         // If points to empty string, nothing to publish.
+    unsigned long lastPublishMillis = 0;
+
+    void publish_(String event, String data) {
+      Particle.publish(event, data, 1, PRIVATE);
+      lastPublishMillis = millis();
+    }
+
+    void incrementIndex(int& i) {
+      if (i < NUM_QUEUED_MESSAGES - 1) {
+        i++;
+      } else {
+        i = 0;
+      }
+    }
+
+  public:
+    Publisher() {
+      for (int i = 0; i < NUM_QUEUED_MESSAGES; i++) {
+        queued_events[i] = String("");
+        queued_datas[i] = String("");
+      }
+    }
+
+    bool hasEvents() {
+      return queued_events[nextToBePublishedIndex].length() > 0;
+    }
+
+    void doPublish(String event, String data) {
+      if (!hasEvents() && (lastPublishMillis + WAIT_IN_MILLIS < millis())) {
+        // Can publish immediately without queuing.
+        publish_(event, data);
+      } else {
+        queued_events[nextAvailableIndex] = event;
+        queued_datas[nextAvailableIndex] = data;
+        int i = nextAvailableIndex;
+        incrementIndex(i);
+        if (queued_events[i].length() == 0) {
+          // If there is no data in the next available slot, it's available.
+          // Otherwise the queue is full, don't increment.
+          incrementIndex(nextAvailableIndex);
+        }
+      }
+    }
+
+    void handlePublish() {
+      if (hasEvents() && (lastPublishMillis + WAIT_IN_MILLIS < millis())) {
+        publish_(queued_events[nextToBePublishedIndex], queued_datas[nextToBePublishedIndex]);
+        queued_events[nextToBePublishedIndex] = String("");
+        queued_datas[nextToBePublishedIndex] = String("");
+        incrementIndex(nextToBePublishedIndex);
+      }
+    }
+};
+Publisher* publisher = new Publisher();
+
+/* to test:
+1. Set doRunTests to true.
+2. Compile, flash and watch the console output.
+3. Reset doRunTests to false.
+4. Compile and flash.
+*/
+bool doRunTests = false;
+class PublisherTester {
+  private:
+    void runTests(int testNum, int nPublishes) {
+      for (int i = 0; i < nPublishes; i++) {
+        String e("test_");
+        e.concat(String(testNum));
+        e.concat("_");
+        e.concat(String(i));
+        String d(e);
+        e.concat("_event");
+        d.concat("_data");
+        publisher->doPublish(e, d);
+      }
+      while (publisher->hasEvents()) {
+        delay(500);
+        publisher->handlePublish();
+      }
+      delay(1000);
+    }
+  public:
+    void runAllTests() {
+      delay(2000);        // make sure we are well past publisher->lastPublishMillis.
+      runTests(1, 1);     // minimal, nothing queued
+      runTests(2, 2);     // one message queued
+      runTests(3, publisher->NUM_QUEUED_MESSAGES);  // full queue, none dropped
+      runTests(4, publisher->NUM_QUEUED_MESSAGES + 1);  // one dropped
+    }
+};
+PublisherTester* pt = NULL;
+
 bool publishDelay = true;
 class Utils {
   public:
@@ -1063,10 +1167,7 @@ class Utils {
         return -1;
     }
     static void publish(String event, String data) {
-        Particle.publish(event, data, 1, PRIVATE);
-        if (publishDelay) {
-          delay(1000); // will be rate-limited if we send more than 1 per second.
-        }
+        publisher->doPublish(event, data);
     }
     static void publishJson() {
         String json("{");
@@ -1381,10 +1482,17 @@ void setup() {
 }
 
 void loop() {
-  timeSupport.handleTime();
-  gridEyeSupport.readValue();
-  oledDisplayer.display();
-  if ((Time.second() % Utils::publishRateInSeconds) == 0) {
-    gridEyeSupport.publishData();
+  if (doRunTests) {
+    if (pt == NULL) {
+      pt = new PublisherTester();
+    }
+    pt->runAllTests();
+  } else {
+    timeSupport.handleTime();
+    gridEyeSupport.readValue();
+    oledDisplayer.display();
+    if ((Time.second() % Utils::publishRateInSeconds) == 0) {
+      gridEyeSupport.publishData();
+    }
   }
 }
