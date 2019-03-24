@@ -1049,6 +1049,15 @@ class JSonizer {
     }
 };
 
+/* to test:
+- Set doRunTests to true.
+- You may want to temporarily set NUM_QUEUED_MESSAGES down to 4 to make the test finish faster.
+- Compile, flash and watch the console output.
+- Reset doRunTests back to false and NUM_QUEUED_MESSAGES back to original value if necessary.
+- Compile and flash.
+*/
+bool doRunTests = false;
+
 // Keeps a queue of messages to publish, and publishes them no faster than
 // 1 / second to avoid Particle publish() limit, without using calls to delay().
 class Publisher {
@@ -1076,6 +1085,21 @@ class Publisher {
       }
     }
 
+    void forDebug(String& s, String& d, String indicator) {
+      if (doRunTests) {
+          s.concat("(");
+          s.concat(indicator);
+          s.concat(":");
+          s.concat(String(nextToBePublishedIndex));
+          s.concat(",");
+          s.concat(String(nextAvailableIndex));
+          s.concat(")");
+          d = String(lastPublishMillis);
+          d.concat(",");
+          d.concat(String(millis()));
+      }
+    }
+
   public:
     Publisher() {
       for (int i = 0; i < NUM_QUEUED_MESSAGES; i++) {
@@ -1091,7 +1115,10 @@ class Publisher {
     void doPublish(String event, String data) {
       if (!hasEvents() && (lastPublishMillis + WAIT_IN_MILLIS < millis())) {
         // Can publish immediately without queuing.
+        forDebug(event, data, "i");
         publish_(event, data);
+        nextAvailableIndex = 0;
+        nextToBePublishedIndex = 0;
       } else {
         queued_events[nextAvailableIndex] = event;
         queued_datas[nextAvailableIndex] = data;
@@ -1107,6 +1134,7 @@ class Publisher {
 
     void handlePublish() {
       if (hasEvents() && (lastPublishMillis + WAIT_IN_MILLIS < millis())) {
+        forDebug(queued_events[nextToBePublishedIndex], queued_datas[nextToBePublishedIndex], "q");
         publish_(queued_events[nextToBePublishedIndex], queued_datas[nextToBePublishedIndex]);
         queued_events[nextToBePublishedIndex] = String("");
         queued_datas[nextToBePublishedIndex] = String("");
@@ -1116,13 +1144,6 @@ class Publisher {
 };
 Publisher* publisher = new Publisher();
 
-/* to test:
-1. Set doRunTests to true.
-2. Compile, flash and watch the console output.
-3. Reset doRunTests to false.
-4. Compile and flash.
-*/
-bool doRunTests = false;
 class PublisherTester {
   private:
     void runTests(int testNum, int nPublishes) {
@@ -1131,24 +1152,24 @@ class PublisherTester {
         e.concat(String(testNum));
         e.concat("_");
         e.concat(String(i));
-        String d(e);
         e.concat("_event");
-        d.concat("_data");
-        publisher->doPublish(e, d);
+        publisher->doPublish(e, String("-"));
       }
       while (publisher->hasEvents()) {
         delay(500);
         publisher->handlePublish();
       }
-      delay(1000);
+      delay(2000); // give time for the queue to fully flush out.
     }
   public:
     void runAllTests() {
+      Particle.publish("Starting test run", "-", 1, PRIVATE);
       delay(2000);        // make sure we are well past publisher->lastPublishMillis.
       runTests(1, 1);     // minimal, nothing queued
       runTests(2, 2);     // one message queued
-      runTests(3, publisher->NUM_QUEUED_MESSAGES);  // full queue, none dropped
-      runTests(4, publisher->NUM_QUEUED_MESSAGES + 1);  // one dropped
+      runTests(3, publisher->NUM_QUEUED_MESSAGES + 1);  // one immediate + full queue, none dropped
+      runTests(4, publisher->NUM_QUEUED_MESSAGES + 2);  // one immediate + full queue, next-to-last dropped
+      delay(60000);        // give time to the human to review the console output.
     }
 };
 PublisherTester* pt = NULL;
