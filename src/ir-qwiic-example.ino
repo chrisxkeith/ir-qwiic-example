@@ -1188,7 +1188,8 @@ class Utils {
         return -1;
     }
     static void publish(String event, String data) {
-        publisher->doPublish(event, data);
+        Particle.publish(event, data, 1, PRIVATE);
+        delay(1000);
     }
     static void publishJson() {
         String json("{");
