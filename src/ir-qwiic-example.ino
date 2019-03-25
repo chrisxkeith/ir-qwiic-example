@@ -1450,7 +1450,7 @@ class OLEDDisplayer {
       int temporary = (int)cmd.toInt();
       if (temporary != 0) {
         this->tempToBlinkInF = temporary;
-        return 0;
+        return 1;
       }
       return -1;
     }
