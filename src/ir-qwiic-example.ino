@@ -1342,13 +1342,14 @@ private:
   String  mostRecentData;
 
   String getName() {
-    int numericId = INT_MIN;
     String id = System.deviceID();
+    if (id.equals(thermistor2_test)) {
+      String ret("Stove IR sensor 2");
+      return ret;
+    }
+    int numericId = INT_MIN;
     if (id.equals(thermistor_test)) {
       numericId = 1;
-    }
-    if (id.equals(thermistor2_test)) {
-      numericId = 2;
     }
     if (id.equals(photon_05)) {
       numericId = 5;
