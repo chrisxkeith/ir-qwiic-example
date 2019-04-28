@@ -1424,9 +1424,9 @@ GridEyeSupport gridEyeSupport;
 
 class OLEDDisplayer {
   private:
+    int   tempToBlinkInF = 85;  // If at this temperature or above, blink the temperature display.
     int   minTempInF = 70;      // degrees F that will display as non-black superpixels.
     int   maxTempInF = 90;
-    int   tempToBlinkInF = 85;  // If at this temperature or above, blink the temperature display.
   public:
     bool showTemp = true;
     void display() {
@@ -1447,27 +1447,34 @@ class OLEDDisplayer {
       publishDelay = showTemp;
       return 1;
     }
-    int setTempToBlinkInF(String cmd) {
-      int temporary = (int)cmd.toInt();
-      if (temporary != 0) {
-        this->tempToBlinkInF = temporary;
-        return 1;
+    int setDispTemps(String cmd) {
+      char paramBuf[20];
+      cmd.toCharArray(paramBuf, 20);
+      char *pch = strtok(paramBuf, ",");
+      this->tempToBlinkInF = atoi(pch);
+      pch = strtok(NULL, ",");
+      if (pch != NULL) {
+        this->minTempInF = atoi(pch);
+        pch = strtok(NULL, ",");
+        if (pch != NULL) {
+          this->maxTempInF = atoi(pch);
+        }
       }
-      return -1;
+      return 1;
     }
     void publishJson() {
       String json("{");
-      JSonizer::addFirstSetting(json, "minTempInF", String(minTempInF));
+      JSonizer::addFirstSetting(json, "tempToBlinkInF", String(tempToBlinkInF));
+      JSonizer::addSetting(json, "minTempInF", String(minTempInF));
       JSonizer::addSetting(json, "maxTempInF", String(maxTempInF));
-      JSonizer::addSetting(json, "tempToBlinkInF", String(tempToBlinkInF));
       json.concat("}");
       Utils::publish("OLEDDisplayer json", json);
     }
 };
 OLEDDisplayer oledDisplayer;
 
-int setBlinkTemp(String command) {
-  return oledDisplayer.setTempToBlinkInF(command);
+int setDispTemps(String command) {
+  return oledDisplayer.setDispTemps(command);
 }
 
 int switchDisp(String command) {
@@ -1536,7 +1543,7 @@ void setup() {
   Particle.function("switchDisplay", switchDisp);
   Particle.function("testPattern", testPatt);
   Particle.function("rawPublish", rawPublish);
-  Particle.function("setBlinkTemp", setBlinkTemp);
+  Particle.function("setDispTemps", setDispTemps);
   Particle.function("getHelp", getHelp);
   delay(2000);
   gridEyeSupport.readValue();
