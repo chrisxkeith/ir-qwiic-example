@@ -1015,8 +1015,6 @@ int16_t GridEYE::getRegister(unsigned char reg, int8_t len)
       result = (uint16_t)msb << 8 | lsb;
     }
 
-    _i2cPort->endTransmission();
-
     return result;
                          
 }
@@ -1331,7 +1329,6 @@ class OLEDWrapper {
 };
 OLEDWrapper oledWrapper;
 
-String thermistor_test  = "1c002c001147343438323536";
 String thermistor2_test = "300040001347343438323536";
 String photon_05        = "19002a001347363336383438";
 String photon_06        = "290048001647363335343834";
@@ -1340,6 +1337,7 @@ String photon_07        = "32002e000e47363433353735";
 class GridEyeSupport {
 private:
   String  mostRecentData;
+  float   factor = 1.0;
 
   String getName() {
     String id = System.deviceID();
@@ -1348,9 +1346,6 @@ private:
       return ret;
     }
     int numericId = INT_MIN;
-    if (id.equals(thermistor_test)) {
-      numericId = 1;
-    }
     if (id.equals(photon_05)) {
       numericId = 5;
     }
@@ -1358,6 +1353,7 @@ private:
       numericId = 6;
     }
     if (id.equals(photon_07)) {
+      factor = 1.07;
       numericId = 7;
     }
     String ret("IR heat sensor ");
@@ -1380,7 +1376,7 @@ public:
       }
       mostRecentData.concat(String(t));
     }
-    mostRecentValue = (int)(total / 64);
+    mostRecentValue = (int)(this->factor * total / 64);
     return mostRecentValue;
   }
 
