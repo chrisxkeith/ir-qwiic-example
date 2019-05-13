@@ -1332,7 +1332,7 @@ OLEDWrapper oledWrapper;
 String thermistor2_test = "300040001347343438323536";
 String photon_05        = "19002a001347363336383438";
 String photon_06        = "290048001647363335343834";
-String photon_07        = "32002e000e47363433353735";
+String photon_08        = "500041000b51353432383931";
 
 class GridEyeSupport {
 private:
@@ -1352,9 +1352,9 @@ private:
     if (id.equals(photon_06)) {
       numericId = 6;
     }
-    if (id.equals(photon_07)) {
-      factor = 1.07;
-      numericId = 7;
+    if (id.equals(photon_08)) {
+      factor = 1.2;
+      numericId = 8;
     }
     String ret("IR heat sensor ");
     ret.concat(String(numericId));
