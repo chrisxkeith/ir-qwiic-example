@@ -995,28 +995,32 @@ void GridEYE::setRegister(unsigned char reg, unsigned char val)
     
 }
 
+// The parameter "len" may only be 1 (to retrieve a byte) or 2 (for a signed 16-bit integer).
 int16_t GridEYE::getRegister(unsigned char reg, int8_t len)
 {
+  int16_t result = 0;     // default 0, if the sensor was not connected
 
-  int16_t result;
+  _i2cPort->beginTransmission(_deviceAddress);
+  _i2cPort->write(reg);
+  _i2cPort->endTransmission(false);    // 'false' for a repeated start
 
-    _i2cPort->beginTransmission(_deviceAddress);
-    _i2cPort->write(reg);
-    _i2cPort->endTransmission(false);
-    _i2cPort->requestFrom((uint8_t)_deviceAddress, (uint8_t)len);
-
-    while(_i2cPort->available())    // client may send less than requested
+  _i2cPort->requestFrom((uint8_t)_deviceAddress, (uint8_t)len);
+  if (_i2cPort->available() == len)    // got valid data ?
+  {
+    if (len == 1)
     {
-      // Get bytes from sensor
-      uint8_t lsb = _i2cPort->read(); 
-      uint8_t msb = _i2cPort->read(); 
-  
-      // concat bytes into int
-      result = (uint16_t)msb << 8 | lsb;
+      result = (int16_t) _i2cPort->read();
     }
+    else if (len == 2)
+    {
+      int lsb = _i2cPort->read();
+      int msb = _i2cPort->read();
 
-    return result;
-                         
+      // concat bytes
+      result = (int16_t) (msb << 8 | lsb);
+    }
+  }
+  return result;
 }
 
 // Start CK's code ------- --------- --------- --------- ---------
