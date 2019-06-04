@@ -1288,22 +1288,31 @@ class OLEDWrapper {
     }
 
     bool errShown = false;
-    void superPixel(int xStart, int yStart, int xSuperPixelSize, int ySuperPixelSize, int val) {
+    void verify(int xStart, int yStart, int xi, int yi) {
+      if (!errShown && (xi >= oled.getLCDWidth() || yi >= oled.getLCDHeight())) {
+        String json("{");
+        JSonizer::addSetting(json, "xStart", String(xStart));
+        JSonizer::addSetting(json, "yStart", String(yStart));
+        JSonizer::addSetting(json, "xi", String(xi));
+        JSonizer::addSetting(json, "yi", String(yi));
+        json.concat("}");
+        Utils::publish("super-pixel coordinates out of range", json);
+        errShown = true;
+      }
+    }
+
+    void superPixel(int xStart, int yStart, int xSuperPixelSize, int ySuperPixelSize, int pixelVal) {
       int pixelSize = xSuperPixelSize * ySuperPixelSize;
+      if (pixelVal < 0) {
+        pixelVal = 0;
+      } else if (pixelVal >= pixelSize) {
+        pixelVal = pixelSize - 1;
+      }
       for (int xi = xStart; xi < xStart + xSuperPixelSize; xi++) {
         for (int yi = yStart; yi < yStart + ySuperPixelSize; yi++) {
-          if (!errShown && (xi > oled.getLCDWidth() || yi > oled.getLCDHeight())) {
-            String json("{");
-            JSonizer::addSetting(json, "xStart", String(xStart));
-            JSonizer::addSetting(json, "yStart", String(yStart));
-            JSonizer::addSetting(json, "xi", String(xi));
-            JSonizer::addSetting(json, "yi", String(yi));
-            json.concat("}");
-            Utils::publish("err", json);
-            errShown = true;
-          }
+          verify(xStart, yStart, xi, yi);
           int r = rand() % (pixelSize + 1);
-          if (r < val) { // lower value maps to white pixel.
+          if (r < pixelVal) { // lower value maps to white pixel.
             oled.pixel(xi, yi);
           }
         }
@@ -1398,11 +1407,6 @@ public:
     for (int i = 0; i < 64; i++) {
       int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
       int pixelVal = map(t, lowestTempInF, highestTempInF, 0, pixelSize);
-      if (pixelVal < 0) {
-        pixelVal = 0;
-      } else if (pixelVal > pixelSize) {
-        pixelVal = pixelSize;
-      }
       int x = (i % 8) * xSuperPixelSize;
       int y = (i / 8) * ySuperPixelSize;
       // This (admittedly confusing) switcheroo of x and y axes is to make the orientation
@@ -1549,6 +1553,10 @@ void setup() {
   gridEyeSupport.readValue();
   oledDisplayer.display();
   gridEyeSupport.publishData();
+
+  if (System.deviceID().equals(photon_08)) {
+    switchDisp(""); // show heat map.
+  }
 }
 
 void loop() {
