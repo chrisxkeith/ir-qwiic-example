@@ -1269,6 +1269,7 @@ TimeSupport    timeSupport(-8, "PST");
 class OLEDWrapper {
   public:
     MicroOLED oled;
+    String bitmap = String("");
 
     OLEDWrapper() {
         oled.begin();    // Initialize the OLED
@@ -1308,15 +1309,20 @@ class OLEDWrapper {
       } else if (pixelVal >= pixelSize) {
         pixelVal = pixelSize - 1;
       }
+      String tmpbitmap = "";
       for (int xi = xStart; xi < xStart + xSuperPixelSize; xi++) {
         for (int yi = yStart; yi < yStart + ySuperPixelSize; yi++) {
           verify(xStart, yStart, xi, yi);
           int r = rand() % (pixelSize + 1);
           if (r < pixelVal) { // lower value maps to white pixel.
             oled.pixel(xi, yi);
+            tmpbitmap.concat("_");
+          } else {
+            tmpbitmap.concat("M");
           }
         }
       }
+      bitmap = tmpbitmap;
     }
 
     void testPattern() {
@@ -1395,6 +1401,7 @@ public:
 
   int publishData() {
     Utils::publish(getName(), String(mostRecentValue));
+//    Utils::publish(getName(), oledWrapper.bitmap);
     return 1;
   }
 
@@ -1559,6 +1566,7 @@ void setup() {
   }
 }
 
+int lastPublish = 0;
 void loop() {
   if (doRunTests) {
     if (pt == NULL) {
@@ -1569,8 +1577,9 @@ void loop() {
     timeSupport.handleTime();
     gridEyeSupport.readValue();
     oledDisplayer.display();
-    if ((Time.second() % Utils::publishRateInSeconds) == 0) {
+    if ((Time.second() % Utils::publishRateInSeconds) == 0 && Time.second() > lastPublish) {
       gridEyeSupport.publishData();
+      lastPublish = Time.second();
     }
   }
 }
