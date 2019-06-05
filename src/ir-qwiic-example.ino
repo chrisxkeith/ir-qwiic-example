@@ -1269,7 +1269,6 @@ TimeSupport    timeSupport(-8, "PST");
 class OLEDWrapper {
   public:
     MicroOLED oled;
-    String bitmap = String("");
 
     OLEDWrapper() {
         oled.begin();    // Initialize the OLED
@@ -1302,40 +1301,23 @@ class OLEDWrapper {
       }
     }
 
-    void superPixel(int xStart, int yStart, int xSuperPixelSize, int ySuperPixelSize, int pixelVal) {
+    void superPixel(int xStart, int yStart, int xSuperPixelSize, int ySuperPixelSize, int pixelVal,
+          int left, int right, int top, int bottom) {
       int pixelSize = xSuperPixelSize * ySuperPixelSize;
       if (pixelVal < 0) {
         pixelVal = 0;
       } else if (pixelVal >= pixelSize) {
         pixelVal = pixelSize - 1;
       }
-      String tmpbitmap = "";
       for (int xi = xStart; xi < xStart + xSuperPixelSize; xi++) {
         for (int yi = yStart; yi < yStart + ySuperPixelSize; yi++) {
           verify(xStart, yStart, xi, yi);
           int r = rand() % (pixelSize + 1);
           if (r < pixelVal) { // lower value maps to white pixel.
             oled.pixel(xi, yi);
-            tmpbitmap.concat("_");
-          } else {
-            tmpbitmap.concat("M");
           }
         }
       }
-      bitmap = tmpbitmap;
-    }
-
-    void testPattern() {
-      oled.clear(PAGE);
-      int xSuperPixelSize = 6;
-      int ySuperPixelSize = 6;
-      for (int i = 0; i < 64; i++) {
-        int x = (i % 8) * xSuperPixelSize;
-        int y = (i / 8) * ySuperPixelSize;
-        superPixel(x, y, xSuperPixelSize, ySuperPixelSize, i);
-      }
-      oled.display();
-      delay(5000);
     }
 
     void publishJson() {
@@ -1401,7 +1383,6 @@ public:
 
   int publishData() {
     Utils::publish(getName(), String(mostRecentValue));
-//    Utils::publish(getName(), oledWrapper.bitmap);
     return 1;
   }
 
@@ -1411,14 +1392,34 @@ public:
     int xSuperPixelSize = 6;
     int ySuperPixelSize = 6;
     int pixelSize = xSuperPixelSize * ySuperPixelSize;
+    int pixelVals[64];
     for (int i = 0; i < 64; i++) {
       int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
-      int pixelVal = map(t, lowestTempInF, highestTempInF, 0, pixelSize);
+      pixelVals[i] = map(t, lowestTempInF, highestTempInF, 0, pixelSize);
+    }
+    for (int i = 0; i < 64; i++) {
       int x = (i % 8) * xSuperPixelSize;
       int y = (i / 8) * ySuperPixelSize;
+      int left = x;
+      int right = x;
+      int top = y;
+      int bottom = y;
+      if (x > 0) {
+        left = pixelVals[i - 1];
+      }
+      if (x < 7) {
+        right = pixelVals[i + 1];
+      }
+      if (y > 0) {
+        top = pixelVals[i - 8];
+      }
+      if (y < 7) {
+        top = pixelVals[i + 8];
+      }
       // This (admittedly confusing) switcheroo of x and y axes is to make the orientation
       // of the sensor (with logo reading correctly) match the orientation of the OLED.
-      oledWrapper.superPixel(y, x, ySuperPixelSize, xSuperPixelSize, pixelVal);
+      oledWrapper.superPixel(y, x, ySuperPixelSize, xSuperPixelSize, pixelVals[i],
+          left, right, top, bottom);
     }
     oledWrapper.oled.display();
   }
@@ -1492,11 +1493,6 @@ int switchDisp(String command) {
   return oledDisplayer.switchDisp(command);
 }
 
-int testPatt(String command) {
-  oledWrapper.testPattern();
-  return 1;
-}
-
 int pubData(String command) {
   return gridEyeSupport.publishData();
 }
@@ -1552,7 +1548,6 @@ void setup() {
   Particle.function("publishData", pubData);
   Particle.function("getSettings", pubSettings);
   Particle.function("switchDisplay", switchDisp);
-  Particle.function("testPattern", testPatt);
   Particle.function("rawPublish", rawPublish);
   Particle.function("setDispTemps", setDispTemps);
   Particle.function("getHelp", getHelp);
