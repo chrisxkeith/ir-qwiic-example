@@ -1301,24 +1301,49 @@ class OLEDWrapper {
       }
     }
 
-    void superPixel(int xStart, int yStart, int xSuperPixelSize, int ySuperPixelSize, int pixelVal,
-          int left, int right, int top, int bottom) {
-      int pixelSize = xSuperPixelSize * ySuperPixelSize;
-      if (pixelVal < 0) {
-        pixelVal = 0;
-      } else if (pixelVal >= pixelSize) {
-        pixelVal = pixelSize - 1;
-      }
-      for (int xi = xStart; xi < xStart + xSuperPixelSize; xi++) {
-        for (int yi = yStart; yi < yStart + ySuperPixelSize; yi++) {
-          verify(xStart, yStart, xi, yi);
-          int r = rand() % (pixelSize + 1);
-          if (r < pixelVal) { // lower value maps to white pixel.
-            oled.pixel(xi, yi);
-          }
-        }
-      }
-    }
+   void superPixel(int xStart, int yStart, int xSuperPixelSize, int ySuperPixelSize, int pixelVal,
+         int left, int right, int top, int bottom) {
+     int pixelSize = xSuperPixelSize * ySuperPixelSize;
+     if (pixelVal < 0) {
+       pixelVal = 0;
+     } else if (pixelVal >= pixelSize) {
+       pixelVal = pixelSize - 1;
+     }
+     for (int xi = xStart; xi < xStart + xSuperPixelSize; xi++) {
+       for (int yi = yStart; yi < yStart + ySuperPixelSize; yi++) {
+         verify(xStart, yStart, xi, yi);
+         int r = rand() % (pixelSize + 1);
+/*
+         float xfactor;
+         if (xi >= xStart + (xSuperPixelSize / 2)) {
+           xfactor = left;
+         } else {
+           xfactor = right;
+         }
+         float yfactor;
+         if (yi >= yStart + (ySuperPixelSize / 2)) {
+           yfactor = top;
+         } else {
+           yfactor = bottom;
+         }
+         // how much the adjacent super-pixels will affect the current one.
+         float weight = ((xfactor + yfactor) / 2.0);
+
+         // width/height size of super-pixel.
+         float size = ((xSuperPixelSize + ySuperPixelSize) / 2.0);
+
+         // distance of this pixel from the center of the super-pixel.
+         float xdistance = abs(xi - (xStart + (xSuperPixelSize / 2.0)));
+         float ydistance = abs(yi - (yStart + (ySuperPixelSize / 2.0)));
+         float distance = (xdistance + ydistance) / 2.0;
+         int r = rand() * (pixelVal+ (weight * (distance / size)));
+*/
+         if (r < pixelVal) { // lower value maps to white pixel.
+           oled.pixel(xi, yi);
+         }
+       }
+     }
+   }
 
     void publishJson() {
         String json("{");
