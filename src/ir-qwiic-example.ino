@@ -1357,7 +1357,7 @@ OLEDWrapper oledWrapper;
 
 String thermistor2_test = "300040001347343438323536";
 String photon_05        = "19002a001347363336383438";
-String photon_06        = "290048001647363335343834";
+String photon_07        = "32002e000e47363433353735";
 String photon_08        = "500041000b51353432383931";
 
 class GridEyeSupport {
@@ -1375,8 +1375,8 @@ private:
     if (id.equals(photon_05)) {
       numericId = 5;
     }
-    if (id.equals(photon_06)) {
-      numericId = 6;
+    if (id.equals(photon_07)) {
+      numericId = 7;
     }
     if (id.equals(photon_08)) {
       factor = 1.2;
@@ -1391,6 +1391,7 @@ public:
   GridEYE grideye;
   int     mostRecentValue;
 
+  // This will take 15-20 seconds if the GridEye isn't connected.
   int readValue() {
     float total = 0;
     mostRecentData = String("");
@@ -1564,6 +1565,7 @@ int getHelp(String command) {
 }
 
 void setup() {
+  Particle.publish("Debug", "Started setup...", 1, PRIVATE);
   // Start your preferred I2C object
   Wire.begin();
   // Library assumes "Wire" for I2C but you can pass something else with begin() if you like
@@ -1578,12 +1580,13 @@ void setup() {
   Particle.function("getHelp", getHelp);
   delay(2000);
   gridEyeSupport.readValue();
-  oledDisplayer.display();
-  gridEyeSupport.publishData();
 
-  if (System.deviceID().equals(photon_08)) {
+  if (System.deviceID().equals(photon_07)) {
     switchDisp(""); // show heat map.
   }
+  oledDisplayer.display();
+  gridEyeSupport.publishData();
+  Particle.publish("Debug", "Finished setup...", 1, PRIVATE);
 }
 
 int lastPublish = 0;
@@ -1597,9 +1600,10 @@ void loop() {
     timeSupport.handleTime();
     gridEyeSupport.readValue();
     oledDisplayer.display();
-    if ((Time.second() % Utils::publishRateInSeconds) == 0 && Time.second() > lastPublish) {
+    int thisSecond = Time.second();
+    if ((thisSecond % Utils::publishRateInSeconds) == 0 && thisSecond > lastPublish) {
       gridEyeSupport.publishData();
-      lastPublish = Time.second();
+      lastPublish = thisSecond;
     }
   }
 }
