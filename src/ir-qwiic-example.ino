@@ -1362,6 +1362,7 @@ String photon_08        = "500041000b51353432383931";
 
 class GridEyeSupport {
 private:
+  GridEYE grideye;
   String  mostRecentData;
   float   factor = 1.0;
 
@@ -1388,22 +1389,30 @@ private:
   }
 
 public:
-  GridEYE grideye;
-  int     mostRecentValue;
+  int     mostRecentValue = INT_MIN;
+  boolean enabled = false;
+
+  void begin() {
+    if (enabled) {
+      grideye.begin();
+    }
+  }
 
   // This will take 15-20 seconds if the GridEye isn't connected.
   int readValue() {
-    float total = 0;
-    mostRecentData = String("");
-    for (int i = 0; i < 64; i++) {
-      int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
-      total += t;
-      if (i > 0) {
-        mostRecentData.concat(",");
+    if (enabled) {
+      float total = 0;
+      mostRecentData = String("");
+      for (int i = 0; i < 64; i++) {
+        int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
+        total += t;
+        if (i > 0) {
+          mostRecentData.concat(",");
+        }
+        mostRecentData.concat(String(t));
       }
-      mostRecentData.concat(String(t));
+      mostRecentValue = (int)(this->factor * total / 64);
     }
-    mostRecentValue = (int)(this->factor * total / 64);
     return mostRecentValue;
   }
 
@@ -1413,6 +1422,9 @@ public:
   }
 
   void displayGrid(int lowestTempInF, int highestTempInF) {
+    if (!enabled) {
+      return;
+    }
     srand(0);
     oledWrapper.oled.clear(PAGE);
     int xSuperPixelSize = 6;
@@ -1569,7 +1581,10 @@ void setup() {
   // Start your preferred I2C object
   Wire.begin();
   // Library assumes "Wire" for I2C but you can pass something else with begin() if you like
-  gridEyeSupport.grideye.begin();
+
+  gridEyeSupport.enabled = true;
+  gridEyeSupport.begin();
+
   Serial.begin(115200);
 
   Particle.function("publishData", pubData);
@@ -1600,7 +1615,7 @@ void loop() {
     timeSupport.handleTime();
     gridEyeSupport.readValue();
     oledDisplayer.display();
-    int thisSecond = Time.second();
+    int thisSecond = millis() / 1000;
     if ((thisSecond % Utils::publishRateInSeconds) == 0 && thisSecond > lastPublish) {
       gridEyeSupport.publishData();
       lastPublish = thisSecond;
