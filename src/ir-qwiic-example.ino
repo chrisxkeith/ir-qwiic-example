@@ -1023,7 +1023,7 @@ int16_t GridEYE::getRegister(unsigned char reg, int8_t len)
   return result;
 }
 
-// Start CK's code ------- --------- --------- --------- ---------
+// Start CK's code 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 const String githubHash = "to be replaced manually (and code re-flashed) after 'git push'";
 
 #include <limits.h>
