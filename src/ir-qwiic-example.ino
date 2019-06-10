@@ -1594,7 +1594,13 @@ void setup() {
   Particle.function("setDispTemps", setDispTemps);
   Particle.function("getHelp", getHelp);
   delay(2000);
+  int now = millis();
   gridEyeSupport.readValue();
+  if (millis() - now > 5000) {
+    // GridEye probably not connected, will eventually semi-brick the Photon.
+    gridEyeSupport.enabled = false;
+    gridEyeSupport.mostRecentValue = INT_MIN;
+  }
 
   if (System.deviceID().equals(photon_07)) {
     switchDisp(""); // show heat map.
