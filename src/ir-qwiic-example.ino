@@ -1227,6 +1227,46 @@ class OLEDWrapper {
         json.concat("}");
         Utils::publish("OLED", json);
     }
+
+    void testPattern() {
+      int pixelVals[64];
+      for (int i = 0; i < 64; i++) {
+        pixelVals[i] = i;
+      }
+      int xSuperPixelSize = 6;	
+      int ySuperPixelSize = 6;	
+      displayArray(xSuperPixelSize, ySuperPixelSize, pixelVals);
+      delay(15000);	
+    }
+
+    void displayArray(int xSuperPixelSize, int ySuperPixelSize, int pixelVals[]) {
+      oled.clear(PAGE);
+      for (int i = 0; i < 64; i++) {
+        int x = (i % 8) * xSuperPixelSize;
+        int y = (i / 8) * ySuperPixelSize;
+        int left = x;
+        int right = x;
+        int top = y;
+        int bottom = y;
+        if (x > 0) {
+          left = pixelVals[i - 1];
+        }
+        if (x < 7) {
+          right = pixelVals[i + 1];
+        }
+        if (y > 0) {
+          top = pixelVals[i - 8];
+        }
+        if (y < 7) {
+          top = pixelVals[i + 8];
+        }
+        // This (admittedly confusing) switcheroo of x and y axes is to make the orientation
+        // of the sensor (with logo reading correctly) match the orientation of the OLED.
+        superPixel(y, x, ySuperPixelSize, xSuperPixelSize, pixelVals[i],
+            left, right, top, bottom);
+      }
+      oled.display();
+    }
 };
 OLEDWrapper oledWrapper;
 
@@ -1301,7 +1341,6 @@ public:
       return;
     }
     srand(0);
-    oledWrapper.oled.clear(PAGE);
     int xSuperPixelSize = 6;
     int ySuperPixelSize = 6;
     int pixelSize = xSuperPixelSize * ySuperPixelSize;
@@ -1310,31 +1349,7 @@ public:
       int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
       pixelVals[i] = map(t, lowestTempInF, highestTempInF, 0, pixelSize);
     }
-    for (int i = 0; i < 64; i++) {
-      int x = (i % 8) * xSuperPixelSize;
-      int y = (i / 8) * ySuperPixelSize;
-      int left = x;
-      int right = x;
-      int top = y;
-      int bottom = y;
-      if (x > 0) {
-        left = pixelVals[i - 1];
-      }
-      if (x < 7) {
-        right = pixelVals[i + 1];
-      }
-      if (y > 0) {
-        top = pixelVals[i - 8];
-      }
-      if (y < 7) {
-        top = pixelVals[i + 8];
-      }
-      // This (admittedly confusing) switcheroo of x and y axes is to make the orientation
-      // of the sensor (with logo reading correctly) match the orientation of the OLED.
-      oledWrapper.superPixel(y, x, ySuperPixelSize, xSuperPixelSize, pixelVals[i],
-          left, right, top, bottom);
-    }
-    oledWrapper.oled.display();
+    oledWrapper.displayArray(xSuperPixelSize, ySuperPixelSize, pixelVals);
   }
 
   void publishJson() {
@@ -1451,6 +1466,11 @@ int getHelp(String command) {
     return 1;
 }
 
+int testPatt(String command) {	
+  oledWrapper.testPattern();	
+  return 1;	
+}
+
 void setup() {
   Particle.publish("Debug", "Started setup...", 1, PRIVATE);
   // Start your preferred I2C object
@@ -1468,6 +1488,7 @@ void setup() {
   Particle.function("rawPublish", rawPublish);
   Particle.function("setDispTemps", setDispTemps);
   Particle.function("getHelp", getHelp);
+  Particle.function("testPattern", testPatt);
   delay(2000);
   int now = millis();
   gridEyeSupport.readValue();
