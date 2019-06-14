@@ -1142,8 +1142,11 @@ TimeSupport    timeSupport(-8, "PST");
 #include <math.h>
 
 class OLEDWrapper {
-  public:
+  private:
     MicroOLED oled;
+
+  public:
+    bool    weighted = false;
 
     OLEDWrapper() {
         oled.begin();    // Initialize the OLED
@@ -1187,32 +1190,36 @@ class OLEDWrapper {
      for (int xi = xStart; xi < xStart + xSuperPixelSize; xi++) {
        for (int yi = yStart; yi < yStart + ySuperPixelSize; yi++) {
          verify(xStart, yStart, xi, yi);
-         int r = rand() % (pixelSize + 1);
-/*
-         float xfactor;
-         if (xi >= xStart + (xSuperPixelSize / 2)) {
-           xfactor = left;
-         } else {
-           xfactor = right;
-         }
-         float yfactor;
-         if (yi >= yStart + (ySuperPixelSize / 2)) {
-           yfactor = top;
-         } else {
-           yfactor = bottom;
-         }
-         // how much the adjacent super-pixels will affect the current one.
-         float weight = ((xfactor + yfactor) / 2.0);
 
-         // width/height size of super-pixel.
-         float size = ((xSuperPixelSize + ySuperPixelSize) / 2.0);
+         // Value between 1 and pixelSize - 2,
+         // so pixelVal of 0 will have all pixels off
+         // and pixelVal of pixelSize - 1 will have all pixels on. 
+         int r = (rand() % (pixelSize - 2)) + 1;
+         if (weighted) {
+            float xfactor;
+            if (xi >= xStart + (xSuperPixelSize / 2)) {
+                xfactor = left;
+            } else {
+                xfactor = right;
+            }
+            float yfactor;
+            if (yi >= yStart + (ySuperPixelSize / 2)) {
+                yfactor = top;
+            } else {
+                yfactor = bottom;
+            }
+            // how much the adjacent super-pixels will affect the current one.
+            float weight = ((xfactor + yfactor) / 2.0);
 
-         // distance of this pixel from the center of the super-pixel.
-         float xdistance = abs(xi - (xStart + (xSuperPixelSize / 2.0)));
-         float ydistance = abs(yi - (yStart + (ySuperPixelSize / 2.0)));
-         float distance = (xdistance + ydistance) / 2.0;
-         int r = rand() * (pixelVal+ (weight * (distance / size)));
-*/
+            // width/height size of super-pixel.
+            float size = ((xSuperPixelSize + ySuperPixelSize) / 2.0);
+
+            // distance of this pixel from the center of the super-pixel.
+            float xdistance = abs(xi - (xStart + (xSuperPixelSize / 2.0)));
+            float ydistance = abs(yi - (yStart + (ySuperPixelSize / 2.0)));
+            float distance = (xdistance + ydistance) / 2.0;
+            int r = rand() * (pixelVal+ (weight * (distance / size)));
+         }
          if (r < pixelVal) { // lower value maps to white pixel.
            oled.pixel(xi, yi);
          }
@@ -1229,14 +1236,22 @@ class OLEDWrapper {
     }
 
     void testPattern() {
+      int xSuperPixelSize = 6;	
+      int ySuperPixelSize = 6;
+      int pixelSize = xSuperPixelSize * ySuperPixelSize; 
+      float diagonalDistance = sqrt((float)(xSuperPixelSize * xSuperPixelSize + ySuperPixelSize * ySuperPixelSize));
+      float factor = (float)pixelSize / diagonalDistance;
       int pixelVals[64];
       for (int i = 0; i < 64; i++) {
-        pixelVals[i] = i;
+        int x = (i % 8);
+        int y = (i / 8);
+        pixelVals[i] = (int)(round(sqrt((float)(x * x + y * y)) * factor));
       }
-      int xSuperPixelSize = 6;	
-      int ySuperPixelSize = 6;	
       displayArray(xSuperPixelSize, ySuperPixelSize, pixelVals);
-      delay(15000);	
+      delay(5000);
+      this->weighted = true;
+      displayArray(xSuperPixelSize, ySuperPixelSize, pixelVals);
+      delay(5000);	
     }
 
     void displayArray(int xSuperPixelSize, int ySuperPixelSize, int pixelVals[]) {
@@ -1266,6 +1281,10 @@ class OLEDWrapper {
             left, right, top, bottom);
       }
       oled.display();
+    }
+
+    void clear() {
+      oled.clear(ALL);
     }
 };
 OLEDWrapper oledWrapper;
@@ -1373,7 +1392,7 @@ class OLEDDisplayer {
       if (showTemp) {
         int temp = gridEyeSupport.mostRecentValue;
         if (temp >= tempToBlinkInF) {
-          oledWrapper.oled.clear(ALL);
+          oledWrapper.clear();
           delay(500);
         }
         oledWrapper.display(String(temp), 3);
