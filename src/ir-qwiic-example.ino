@@ -1142,10 +1142,8 @@ TimeSupport    timeSupport(-8, "PST");
 #include <math.h>
 
 class OLEDWrapper {
-  private:
-    MicroOLED oled;
-
   public:
+    MicroOLED oled;
     bool    weighted = false;
 
     OLEDWrapper() {
@@ -1156,13 +1154,29 @@ class OLEDWrapper {
         oled.clear(PAGE); // Clear the buffer.
     }
 
-    void display(String title, int font)
-    {
-      oled.clear(PAGE);
-      oled.setFontType(font);
-      oled.setCursor(0, 0);
-      oled.print(title);
-      oled.display();
+    void display(String title, int font, uint8_t x, uint8_t y) {
+        oled.clear(PAGE);
+        oled.setFontType(font);
+        oled.setCursor(x, y);
+        oled.print(title);
+        oled.display();
+    }
+
+    void display(String title, int font) {
+        display(title, font, 0, 0);
+    }
+
+    void displayNumber(String s) {
+        // To reduce OLED burn-in, shift the digits (if possible) on the odd minutes.
+        int x = 0;
+        if (Time.minute() % 2) {
+            const int MAX_DIGITS = 4;
+            if (s.length() < MAX_DIGITS) {
+                const int FONT_WIDTH = 12;
+                x += FONT_WIDTH * (MAX_DIGITS - s.length());
+            }
+        }
+        display(s, 3, x, 0);
     }
 
     bool errShown = false;
@@ -1386,16 +1400,23 @@ class OLEDDisplayer {
     int   tempToBlinkInF = 90;  // If at this temperature or above, blink the temperature display.
     int   minTempInF = 70;      // degrees F that will display as non-black superpixels.
     int   maxTempInF = 90;
+    bool  invert = true;
   public:
     bool showTemp = true;
     void display() {
       if (showTemp) {
         int temp = gridEyeSupport.mostRecentValue;
         if (temp >= tempToBlinkInF) {
-          oledWrapper.clear();
-          delay(500);
+          oledWrapper.oled.invert(invert);
+          invert = !invert;
+        } else {
+            if (!invert) {
+                // If going out of "blink" mode, make sure background is black.
+                oledWrapper.oled.invert(false);
+                invert = true;
+            }
         }
-        oledWrapper.display(String(temp), 3);
+        oledWrapper.displayNumber(String(temp));
         delay(1000);
       } else {
         gridEyeSupport.displayGrid(minTempInF, maxTempInF);

@@ -1,5 +1,5 @@
 {
-    "particle.targetDevice": "thermistor2-test",
+    "particle.targetDevice": "photon-05",
     "particle.firmwareVersion": "1.2.1-rc.3",
     "particle.targetPlatform": "photon"
 }
