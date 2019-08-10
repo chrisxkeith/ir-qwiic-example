@@ -1307,6 +1307,7 @@ String thermistor2_test = "300040001347343438323536";
 String photon_05        = "19002a001347363336383438";
 String photon_07        = "32002e000e47363433353735";
 String photon_08        = "500041000b51353432383931";
+String photon_09        = "1f0027001347363336383437";
 
 class GridEyeSupport {
 private:
@@ -1329,6 +1330,9 @@ private:
     }
     if (id.equals(photon_08)) {
       numericId = 8;
+    }
+    if (id.equals(photon_09)) {
+      numericId = 9;
     }
     String ret("IR heat sensor ");
     ret.concat(String(numericId));
@@ -1535,10 +1539,6 @@ void setup() {
     // GridEye probably not connected, will eventually semi-brick the Photon.
     gridEyeSupport.enabled = false;
     gridEyeSupport.mostRecentValue = INT_MIN;
-  }
-
-  if (System.deviceID().equals(photon_07)) {
-    switchDisp(""); // show heat map.
   }
   oledDisplayer.display();
   gridEyeSupport.publishData();
