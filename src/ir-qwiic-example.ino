@@ -1328,7 +1328,6 @@ private:
       numericId = 7;
     }
     if (id.equals(photon_08)) {
-      factor = 1.2;
       numericId = 8;
     }
     String ret("IR heat sensor ");
