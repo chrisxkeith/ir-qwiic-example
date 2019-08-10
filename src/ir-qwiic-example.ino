@@ -1397,11 +1397,11 @@ GridEyeSupport gridEyeSupport;
 class OLEDDisplayer {
   private:
     int   tempToBlinkInF = 90;  // If at this temperature or above, blink the temperature display.
-    int   minTempInF = 70;      // degrees F that will display as non-black superpixels.
+    int   minTempInF = 80;      // degrees F that will display as non-black superpixels.
     int   maxTempInF = 90;
     bool  invert = true;
   public:
-    bool showTemp = true;
+    bool showTemp = !System.deviceID().equals(photon_08);
     void display() {
       if (showTemp) {
         int temp = gridEyeSupport.mostRecentValue;
