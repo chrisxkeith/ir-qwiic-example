@@ -1405,7 +1405,7 @@ class OLEDDisplayer {
     int   maxTempInF = 90;
     bool  invert = true;
   public:
-    bool showTemp = !System.deviceID().equals(photon_08);
+    bool showTemp = !System.deviceID().equals(photon_05);
     void display() {
       if (showTemp) {
         int temp = gridEyeSupport.mostRecentValue;
