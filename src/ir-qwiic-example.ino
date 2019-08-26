@@ -1306,7 +1306,7 @@ OLEDWrapper oledWrapper;
 String photon_05        = "19002a001347363336383438";
 String photon_07        = "32002e000e47363433353735";
 String photon_08        = "500041000b51353432383931";
-String photon_09        = "1f0027001347363336383437";
+String photon_10        = "410027001247363335343834";
 
 class GridEyeSupport {
 private:
@@ -1326,7 +1326,7 @@ private:
     if (id.equals(photon_08)) {
       location = "Stove";
     }
-    if (id.equals(photon_09)) {
+    if (id.equals(photon_10)) {
       location = "Faire 2";
     }
     location.concat(" heat sensor");
