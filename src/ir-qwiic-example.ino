@@ -1303,7 +1303,6 @@ class OLEDWrapper {
 };
 OLEDWrapper oledWrapper;
 
-String thermistor2_test = "300040001347343438323536";
 String photon_05        = "19002a001347363336383438";
 String photon_07        = "32002e000e47363433353735";
 String photon_08        = "500041000b51353432383931";
@@ -1317,26 +1316,21 @@ private:
 
   String getName() {
     String id = System.deviceID();
-    if (id.equals(thermistor2_test)) {
-      String ret("Stove IR sensor 2");
-      return ret;
-    }
-    int numericId = INT_MIN;
+    String location = "Unknown";
     if (id.equals(photon_05)) {
-      numericId = 5;
+      location = "Faire 1";
     }
     if (id.equals(photon_07)) {
-      numericId = 7;
+      location = "Fab Lab";
     }
     if (id.equals(photon_08)) {
-      numericId = 8;
+      location = "Stove";
     }
     if (id.equals(photon_09)) {
-      numericId = 9;
+      location = "Faire 2";
     }
-    String ret("IR heat sensor ");
-    ret.concat(String(numericId));
-    return ret;
+    location.concat(" heat sensor");
+    return location;
   }
 
 public:
