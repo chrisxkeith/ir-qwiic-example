@@ -1170,7 +1170,7 @@ class OLEDWrapper {
         // To reduce OLED burn-in, shift the digits (if possible) on the odd minutes.
         int x = 0;
         if (Time.minute() % 2) {
-            const int MAX_DIGITS = 4;
+            const int MAX_DIGITS = 5;
             if (s.length() < MAX_DIGITS) {
                 const int FONT_WIDTH = 12;
                 x += FONT_WIDTH * (MAX_DIGITS - s.length());
