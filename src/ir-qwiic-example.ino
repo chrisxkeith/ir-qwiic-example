@@ -1416,6 +1416,9 @@ class OLEDDisplayer {
         oledWrapper.displayNumber(String(temp));
         delay(1000);
       } else {
+        // Getting the display to react quickly
+        // takes precedence over publishing to the Particle cloud.
+        publishDelay = false;
         gridEyeSupport.displayGrid(minTempInF, maxTempInF);
       }
     }
