@@ -1315,6 +1315,9 @@ private:
   float   factor = 1.0;
 
   String getName() {
+    // Getting the display to react quickly for Maker Faire
+    // takes precedence over publishing to the Particle cloud.
+    publishDelay = false;
     String id = System.deviceID();
     String location = "Unknown";
     if (id.equals(photon_05)) {
@@ -1325,6 +1328,7 @@ private:
     }
     if (id.equals(photon_08)) {
       location = "Stove";
+      publishDelay = true;
     }
     if (id.equals(photon_10)) {
       location = "Faire 2";
@@ -1399,7 +1403,7 @@ class OLEDDisplayer {
     int   maxTempInF = 90;
     bool  invert = true;
   public:
-    bool showTemp = !System.deviceID().equals(photon_05);
+    bool showTemp = !System.deviceID().equals(photon_07);
     void display() {
       if (showTemp) {
         int temp = gridEyeSupport.mostRecentValue;
@@ -1414,11 +1418,8 @@ class OLEDDisplayer {
             }
         }
         oledWrapper.displayNumber(String(temp));
-        delay(1000);
+        delay(500);
       } else {
-        // Getting the display to react quickly
-        // takes precedence over publishing to the Particle cloud.
-        publishDelay = false;
         gridEyeSupport.displayGrid(minTempInF, maxTempInF);
       }
     }
