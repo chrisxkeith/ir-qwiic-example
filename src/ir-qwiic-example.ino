@@ -1303,10 +1303,72 @@ class OLEDWrapper {
 };
 OLEDWrapper oledWrapper;
 
+String thermistor_test  = "1c002c001147343438323536";
+String photon_02        = "300040001347343438323536";
 String photon_05        = "19002a001347363336383438";
 String photon_07        = "32002e000e47363433353735";
 String photon_08        = "500041000b51353432383931";
+String photon_09        = "1f0027001347363336383437";
 String photon_10        = "410027001247363335343834";
+
+class SensorData {
+  private:
+    int     pin;
+    String  name;
+    double  factor; // apply to get human-readable values, e.g., degrees F
+    int     lastVal;
+
+  public:
+    SensorData(int pin, String name, double factor) {
+        this->pin = pin;
+        this->name = name;
+        this->factor = factor;
+        this->lastVal = INT_MIN;
+        pinMode(pin, INPUT);
+    }
+    
+    String getName() { return name; }
+
+    void sample() {
+        if (pin >= A0 && pin <= A5) {
+            lastVal = analogRead(pin);
+        } else {
+            lastVal = digitalRead(pin);
+        }
+    }
+    
+    int applyFactor(int val) {
+        return val * factor;
+    }
+
+    int getValue() {
+        return applyFactor(lastVal);
+    }
+
+    int publishData() {
+      Utils::publish(getName(), String(getValue()));
+      return 1;
+    }
+};
+
+class ThermistorSensor {
+  private:
+    SensorData t1 = SensorData(A0, "Thermistor sensor 1", 0.036);
+    SensorData p9 = SensorData(A0, "Thermistor sensor 9", 0.036);
+
+  public:    
+    SensorData* getSensor() {
+        String id = System.deviceID();
+        if (id.equals(thermistor_test)) {
+            return &t1;
+        }
+        if (id.equals(photon_09)) {
+            return &p9;
+        }
+        return NULL;
+    }
+};
+ThermistorSensor thermistorSensor;
 
 class GridEyeSupport {
 private:
@@ -1402,11 +1464,19 @@ class OLEDDisplayer {
     int   minTempInF = 80;      // degrees F that will display as non-black superpixels.
     int   maxTempInF = 90;
     bool  invert = true;
+
+    int getTemp() {
+        if (thermistorSensor.getSensor() == NULL) {
+          return gridEyeSupport.mostRecentValue;
+        }
+        return thermistorSensor.getSensor()->getValue();
+    }
+
   public:
-    bool showTemp = !System.deviceID().equals(photon_07);
+    bool showTemp = System.deviceID().equals(thermistor_test) || System.deviceID().equals(photon_09);
     void display() {
       if (showTemp) {
-        int temp = gridEyeSupport.mostRecentValue;
+        int temp = getTemp();
         if (temp >= tempToBlinkInF) {
           oledWrapper.oled.invert(invert);
           invert = !invert;
@@ -1512,6 +1582,14 @@ int testPatt(String command) {
   return 1;	
 }
 
+void publish() {
+  if (thermistorSensor.getSensor() == NULL) {
+    gridEyeSupport.publishData();
+  } else {
+    thermistorSensor.getSensor()->publishData();
+  }
+}
+
 void setup() {
   Particle.publish("Debug", "Started setup...", 1, PRIVATE);
   // Start your preferred I2C object
@@ -1531,26 +1609,37 @@ void setup() {
   Particle.function("getHelp", getHelp);
   Particle.function("testPattern", testPatt);
   delay(2000);
-  int now = millis();
-  gridEyeSupport.readValue();
-  if (millis() - now > 5000) {
-    // GridEye probably not connected, will eventually semi-brick the Photon.
+
+  if (thermistorSensor.getSensor() == NULL) {
+    int now = millis();
+    gridEyeSupport.readValue();
+    if (millis() - now > 5000) {
+      // GridEye probably not connected, will eventually semi-brick the Photon.
+      gridEyeSupport.enabled = false;
+      gridEyeSupport.mostRecentValue = INT_MIN;
+    }
+  } else {
     gridEyeSupport.enabled = false;
     gridEyeSupport.mostRecentValue = INT_MIN;
+    thermistorSensor.getSensor()->sample();
   }
   oledDisplayer.display();
-  gridEyeSupport.publishData();
+  publish();
   Particle.publish("Debug", "Finished setup...", 1, PRIVATE);
 }
 
 int lastPublish = 0;
 void loop() {
     timeSupport.handleTime();
-    gridEyeSupport.readValue();
+    if (thermistorSensor.getSensor() == NULL) {
+      gridEyeSupport.readValue();
+    } else {
+      thermistorSensor.getSensor()->sample();
+    }
     oledDisplayer.display();
     int thisSecond = millis() / 1000;
     if ((thisSecond % Utils::publishRateInSeconds) == 0 && thisSecond > lastPublish) {
-      gridEyeSupport.publishData();
+      publish();
       lastPublish = thisSecond;
     }
 }
