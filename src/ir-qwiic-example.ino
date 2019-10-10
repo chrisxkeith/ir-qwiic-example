@@ -1473,7 +1473,7 @@ class OLEDDisplayer {
     }
 
   public:
-    bool showTemp = System.deviceID().equals(thermistor_test) || System.deviceID().equals(photon_09);
+    bool showTemp = System.deviceID().equals(thermistor_test) || System.deviceID().equals(photon_05);
     void display() {
       if (showTemp) {
         int temp = getTemp();
@@ -1533,7 +1533,12 @@ int switchDisp(String command) {
 }
 
 int pubData(String command) {
-  return gridEyeSupport.publishData();
+  if (thermistorSensor.getSensor() == NULL) {
+    gridEyeSupport.publishData();
+  } else {
+    thermistorSensor.getSensor()->publishData();
+  }
+  return 1;
 }
 
 // getSettings() is already defined somewhere.
@@ -1582,14 +1587,6 @@ int testPatt(String command) {
   return 1;	
 }
 
-void publish() {
-  if (thermistorSensor.getSensor() == NULL) {
-    gridEyeSupport.publishData();
-  } else {
-    thermistorSensor.getSensor()->publishData();
-  }
-}
-
 void setup() {
   Particle.publish("Debug", "Started setup...", 1, PRIVATE);
   // Start your preferred I2C object
@@ -1624,7 +1621,7 @@ void setup() {
     thermistorSensor.getSensor()->sample();
   }
   oledDisplayer.display();
-  publish();
+  pubData("");
   Particle.publish("Debug", "Finished setup...", 1, PRIVATE);
 }
 
@@ -1639,7 +1636,7 @@ void loop() {
     oledDisplayer.display();
     int thisSecond = millis() / 1000;
     if ((thisSecond % Utils::publishRateInSeconds) == 0 && thisSecond > lastPublish) {
-      publish();
+      pubData("");
       lastPublish = thisSecond;
     }
 }
