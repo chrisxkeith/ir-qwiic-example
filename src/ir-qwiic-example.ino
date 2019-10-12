@@ -1024,7 +1024,7 @@ int16_t GridEYE::getRegister(unsigned char reg, int8_t len)
 }
 
 // Start CK's code 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-const String githubHash = "3e5d93e93ac3f322ecb2df994c7aba5ce4b90792";
+const String githubHash = "to be replaced manually (and code re-flashed) after 'git push'";
 
 #include <limits.h>
 
@@ -1473,9 +1473,7 @@ class OLEDDisplayer {
     }
 
   public:
-    bool showTemp = System.deviceID().equals(thermistor_test) ||
-                    System.deviceID().equals(photon_05) ||
-                    System.deviceID().equals(photon_08);
+    bool showTemp = !System.deviceID().equals(photon_07);
     void display() {
       if (showTemp) {
         int temp = getTemp();
