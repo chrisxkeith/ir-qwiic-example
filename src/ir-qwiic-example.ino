@@ -1355,6 +1355,7 @@ class ThermistorSensor {
   private:
     SensorData t1 = SensorData(A0, "Thermistor sensor 1", 0.036);
     SensorData p9 = SensorData(A0, "Thermistor sensor 9", 0.036);
+    SensorData p10 = SensorData(A0, "Thermistor sensor 10", 0.036);
 
   public:    
     SensorData* getSensor() {
@@ -1364,6 +1365,9 @@ class ThermistorSensor {
         }
         if (id.equals(photon_09)) {
             return &p9;
+        }
+        if (id.equals(photon_10)) {
+            return &p10;
         }
         return NULL;
     }
