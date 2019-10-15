@@ -1353,11 +1353,11 @@ class SensorData {
 
 class ThermistorSensor {
   private:
-    SensorData t1 = SensorData(A0, "Thermistor sensor 1", 0.036);
-    SensorData p9 = SensorData(A0, "Thermistor sensor 9", 0.036);
-    SensorData p10 = SensorData(A0, "Thermistor sensor 10", 0.036);
+    SensorData t1 = SensorData(A0, "Faire Thermistor sensor 1", 0.036);
+    SensorData p9 = SensorData(A0, "Outdoor Thermistor sensor 9", 0.036);
+    SensorData p10 = SensorData(A0, "Outdoor Thermistor sensor 10", 0.036);
 
-  public:    
+  public:
     SensorData* getSensor() {
         String id = System.deviceID();
         if (id.equals(thermistor_test)) {
@@ -1386,18 +1386,18 @@ private:
     publishDelay = false;
     String id = System.deviceID();
     String location = "Unknown";
-    if (id.equals(photon_05)) {
-      location = "Faire 1";
+    if (id.equals(photon_02)) {
+      location = "Faire 1 IR";
     }
     if (id.equals(photon_07)) {
-      location = "Fab Lab";
+      location = "Faire 2 IR";
     }
     if (id.equals(photon_08)) {
       location = "Stove";
       publishDelay = true;
     }
     if (id.equals(photon_10)) {
-      location = "Faire 2";
+      location = "Fab Lab 2 IR";
     }
     location.concat(" heat sensor");
     return location;
