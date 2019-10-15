@@ -1387,17 +1387,20 @@ private:
     String id = System.deviceID();
     String location = "Unknown";
     if (id.equals(photon_02)) {
-      location = "Faire 1 IR";
+      location = "Faire 2 IR";
+    }
+    if (id.equals(photon_05)) {
+      location = "Home 5 IR";
     }
     if (id.equals(photon_07)) {
-      location = "Faire 2 IR";
+      location = "Faire 7 IR";
     }
     if (id.equals(photon_08)) {
       location = "Stove";
       publishDelay = true;
     }
     if (id.equals(photon_10)) {
-      location = "Fab Lab 2 IR";
+      location = "Home 10 IR";
     }
     location.concat(" heat sensor");
     return location;
