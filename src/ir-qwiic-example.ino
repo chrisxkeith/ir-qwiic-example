@@ -1307,7 +1307,7 @@ String thermistor_test  = "1c002c001147343438323536";
 String photon_02        = "300040001347343438323536";
 String photon_05        = "19002a001347363336383438";
 String photon_07        = "32002e000e47363433353735";
-String photon_08        = "500041000b51353432383931";
+String photon_08        = "500041000b51353432383931"; // Stove
 String photon_09        = "1f0027001347363336383437";
 String photon_10        = "410027001247363335343834";
 
