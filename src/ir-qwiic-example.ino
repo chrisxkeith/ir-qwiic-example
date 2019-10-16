@@ -1142,28 +1142,33 @@ TimeSupport    timeSupport(-8, "PST");
 #include <math.h>
 
 class OLEDWrapper {
+  private:
+    MicroOLED* oled = new MicroOLED();
   public:
-    MicroOLED oled;
     bool    weighted = false;
 
     OLEDWrapper() {
-        oled.begin();    // Initialize the OLED
-        oled.clear(ALL); // Clear the display's internal memory
-        oled.display();  // Display what's in the buffer (splashscreen)
+        oled->begin();    // Initialize the OLED
+        oled->clear(ALL); // Clear the display's internal memory
+        oled->display();  // Display what's in the buffer (splashscreen)
         delay(1000);     // Delay 1000 ms
-        oled.clear(PAGE); // Clear the buffer.
+        oled->clear(PAGE); // Clear the buffer.
     }
 
     void display(String title, int font, uint8_t x, uint8_t y) {
-        oled.clear(PAGE);
-        oled.setFontType(font);
-        oled.setCursor(x, y);
-        oled.print(title);
-        oled.display();
+        oled->clear(PAGE);
+        oled->setFontType(font);
+        oled->setCursor(x, y);
+        oled->print(title);
+        oled->display();
     }
 
     void display(String title, int font) {
         display(title, font, 0, 0);
+    }
+
+    void invert(bool invert) {
+      oled->invert(invert);
     }
 
     void displayNumber(String s) {
@@ -1181,7 +1186,7 @@ class OLEDWrapper {
 
     bool errShown = false;
     void verify(int xStart, int yStart, int xi, int yi) {
-      if (!errShown && (xi >= oled.getLCDWidth() || yi >= oled.getLCDHeight())) {
+      if (!errShown && (xi >= oled->getLCDWidth() || yi >= oled->getLCDHeight())) {
         String json("{");
         JSonizer::addSetting(json, "xStart", String(xStart));
         JSonizer::addSetting(json, "yStart", String(yStart));
@@ -1235,7 +1240,7 @@ class OLEDWrapper {
             int r = rand() * (pixelVal+ (weight * (distance / size)));
          }
          if (r < pixelVal) { // lower value maps to white pixel.
-           oled.pixel(xi, yi);
+           oled->pixel(xi, yi);
          }
        }
      }
@@ -1243,8 +1248,8 @@ class OLEDWrapper {
 
     void publishJson() {
         String json("{");
-        JSonizer::addFirstSetting(json, "getLCDWidth()", String(oled.getLCDWidth()));
-        JSonizer::addSetting(json, "getLCDHeight()", String(oled.getLCDHeight()));
+        JSonizer::addFirstSetting(json, "getLCDWidth()", String(oled->getLCDWidth()));
+        JSonizer::addSetting(json, "getLCDHeight()", String(oled->getLCDHeight()));
         json.concat("}");
         Utils::publish("OLED", json);
     }
@@ -1269,7 +1274,7 @@ class OLEDWrapper {
     }
 
     void displayArray(int xSuperPixelSize, int ySuperPixelSize, int pixelVals[]) {
-      oled.clear(PAGE);
+      oled->clear(PAGE);
       for (int i = 0; i < 64; i++) {
         int x = (i % 8) * xSuperPixelSize;
         int y = (i / 8) * ySuperPixelSize;
@@ -1294,11 +1299,11 @@ class OLEDWrapper {
         superPixel(y, x, ySuperPixelSize, xSuperPixelSize, pixelVals[i],
             left, right, top, bottom);
       }
-      oled.display();
+      oled->display();
     }
 
     void clear() {
-      oled.clear(ALL);
+      oled->clear(ALL);
     }
 };
 OLEDWrapper oledWrapper;
@@ -1485,12 +1490,12 @@ class OLEDDisplayer {
       if (showTemp) {
         int temp = getTemp();
         if (temp >= tempToBlinkInF) {
-          oledWrapper.oled.invert(invert);
+          oledWrapper.invert(invert);
           invert = !invert;
         } else {
             if (!invert) {
                 // If going out of "blink" mode, make sure background is black.
-                oledWrapper.oled.invert(false);
+                oledWrapper.invert(false);
                 invert = true;
             }
         }
