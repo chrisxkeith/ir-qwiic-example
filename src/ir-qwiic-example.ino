@@ -1030,112 +1030,36 @@ const String githubHash = "to be replaced manually (and code re-flashed) after '
 
 class JSonizer {
   public:
-    static void addFirstSetting(String& json, String key, String val) {
-        json.concat("\"");
-        json.concat(key);
-        json.concat("\":\"");
-        json.concat(val);
-        json.concat("\"");
-    }
-
-    static void addSetting(String& json, String key, String val) {
-        json.concat(",");
-        addFirstSetting(json, key, val);
-    }
-    
-    static String toString(bool b) {
-        if (b) {
-            return "true";
-        }
-        return "false";
-    }
+    static void addFirstSetting(String& json, String key, String val);
+    static void addSetting(String& json, String key, String val);
+    static String toString(bool b);
 };
 
-bool publishDelay = true;
 class Utils {
   public:
-    const static int publishRateInSeconds = 5;
-
-    static int setInt(String command, int& i, int lower, int upper) {
-        int tempMin = command.toInt();
-        if (tempMin > lower && tempMin < upper) {
-            i = tempMin;
-            return 1;
-        }
-        return -1;
-    }
-    static void publish(String event, String data) {
-        Particle.publish(event, data, 1, PRIVATE);
-        if (publishDelay) {
-          delay(1000);
-        }
-    }
-    static void publishJson() {
-        String json("{");
-        JSonizer::addFirstSetting(json, "githubHash", githubHash);
-        JSonizer::addSetting(json, "publishRateInSeconds", String(publishRateInSeconds));
-        JSonizer::addSetting(json, "publishDelay", JSonizer::toString(publishDelay));
-        json.concat("}");
-        publish("Utils json", json);
-    }
+    static const int publishRateInSeconds;
+    static bool publishDelay;
+    static int setInt(String command, int& i, int lower, int upper);
+    static void publish(String event, String data);
+    static void publishJson();
+    static String getName();
 };
 
 class TimeSupport {
   private:
-    const unsigned long ONE_DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
-    unsigned long lastSyncMillis = millis(); // store millis() for lastSyncMillis as unsigned long
+    unsigned long ONE_DAY_IN_MILLISECONDS;
+    unsigned long lastSyncMillis;
     String timeZoneString;
-
-    String getSettings() {
-        String json("{");
-        JSonizer::addFirstSetting(json, "lastSyncMillis", String(lastSyncMillis));
-        JSonizer::addSetting(json, "timeZoneOffset", String(timeZoneOffset));
-        JSonizer::addSetting(json, "timeZoneString", String(timeZoneString));
-        JSonizer::addSetting(json, "internalTime", nowZ());
-        json.concat("}");
-        return json;
-    }
-
+    String getSettings();
   public:
     int timeZoneOffset;
-
-    TimeSupport(int timeZoneOffset, String timeZoneString) {
-        this->timeZoneOffset = timeZoneOffset;
-        this->timeZoneString = timeZoneString;
-        Time.zone(timeZoneOffset);
-        Particle.syncTime();
-        lastSyncMillis = millis();
-    }
-
-    String timeStrZ(time_t t) {
-        String fmt("%a %b %d %H:%M:%S ");
-        fmt.concat(timeZoneString);
-        fmt.concat(" %Y");
-        return Time.format(t, fmt);
-    }
-
-    String nowZ() {
-        return timeStrZ(Time.now());
-    }
-
-    void handleTime() {
-        if (millis() - lastSyncMillis > ONE_DAY_IN_MILLISECONDS) {    // If it's been a day since last sync...
-                                                                // Request time synchronization from the Particle Cloud
-            Particle.syncTime();
-            lastSyncMillis = millis();
-        }
-    }
-
-    int setTimeZoneOffset(String command) {
-        timeZoneString = "???";
-        return Utils::setInt(command, timeZoneOffset, -24, 24);
-    }
-
-    void publishJson() {
-        Utils::publish("TimeSupport", getSettings());
-    }
+    TimeSupport(int timeZoneOffset, String timeZoneString);
+    String timeStrZ(time_t t);
+    String nowZ();
+    void handleTime();
+    int setTimeZoneOffset(String command);
+    void publishJson();
 };
-TimeSupport    timeSupport(-8, "PST");
 
 #include <SparkFunMicroOLED.h>
 // https://learn.sparkfun.com/tutorials/photon-oled-shield-hookup-guide
@@ -1145,8 +1069,6 @@ class OLEDWrapper {
   private:
     MicroOLED* oled = new MicroOLED();
   public:
-    bool    weighted = false;
-
     OLEDWrapper() {
         oled->begin();    // Initialize the OLED
         oled->clear(ALL); // Clear the display's internal memory
@@ -1214,31 +1136,6 @@ class OLEDWrapper {
          // so pixelVal of 0 will have all pixels off
          // and pixelVal of pixelSize - 1 will have all pixels on. 
          int r = (rand() % (pixelSize - 2)) + 1;
-         if (weighted) {
-            float xfactor;
-            if (xi >= xStart + (xSuperPixelSize / 2)) {
-                xfactor = left;
-            } else {
-                xfactor = right;
-            }
-            float yfactor;
-            if (yi >= yStart + (ySuperPixelSize / 2)) {
-                yfactor = top;
-            } else {
-                yfactor = bottom;
-            }
-            // how much the adjacent super-pixels will affect the current one.
-            float weight = ((xfactor + yfactor) / 2.0);
-
-            // width/height size of super-pixel.
-            float size = ((xSuperPixelSize + ySuperPixelSize) / 2.0);
-
-            // distance of this pixel from the center of the super-pixel.
-            float xdistance = abs(xi - (xStart + (xSuperPixelSize / 2.0)));
-            float ydistance = abs(yi - (yStart + (ySuperPixelSize / 2.0)));
-            float distance = (xdistance + ydistance) / 2.0;
-            int r = rand() * (pixelVal+ (weight * (distance / size)));
-         }
          if (r < pixelVal) { // lower value maps to white pixel.
            oled->pixel(xi, yi);
          }
@@ -1268,7 +1165,6 @@ class OLEDWrapper {
       }
       displayArray(xSuperPixelSize, ySuperPixelSize, pixelVals);
       delay(5000);
-      this->weighted = true;
       displayArray(xSuperPixelSize, ySuperPixelSize, pixelVals);
       delay(5000);	
     }
@@ -1308,6 +1204,91 @@ class OLEDWrapper {
 };
 OLEDWrapper oledWrapper;
 
+class GridEyeSupport {
+private:
+  GridEYE grideye;
+  String  mostRecentData;
+  float   factor = 1.0;
+
+public:
+  int     mostRecentValue = INT_MIN;
+  boolean enabled = false;
+
+  void begin() {
+    if (enabled) {
+      grideye.begin();
+    }
+  }
+
+  // This will take 15-20 seconds if the GridEye isn't connected.
+  int readValue() {
+    if (enabled) {
+      float total = 0;
+      mostRecentData = String("");
+      for (int i = 0; i < 64; i++) {
+        int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
+        total += t;
+        if (i > 0) {
+          mostRecentData.concat(",");
+        }
+        mostRecentData.concat(String(t));
+      }
+      mostRecentValue = (int)(this->factor * total / 64);
+    }
+    return mostRecentValue;
+  }
+
+  int publishData() {
+    Utils::publish(Utils::getName(), String(mostRecentValue));
+    return 1;
+  }
+
+  void displayGrid(int lowestTempInF, int highestTempInF) {
+    if (!enabled) {
+      return;
+    }
+    srand(0);
+    int xSuperPixelSize = 6;
+    int ySuperPixelSize = 6;
+    int pixelSize = xSuperPixelSize * ySuperPixelSize;
+    int pixelVals[64];
+    for (int i = 0; i < 64; i++) {
+      int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
+      pixelVals[i] = map(t, lowestTempInF, highestTempInF, 0, pixelSize);
+    }
+    oledWrapper.displayArray(xSuperPixelSize, ySuperPixelSize, pixelVals);
+  }
+
+  void publishJson() {
+        String json("{");
+        JSonizer::addFirstSetting(json, "address", String((int)grideye.getI2CAddress()));
+        JSonizer::addSetting(json, "mostRecentData", mostRecentData);
+        json.concat("}");
+        Utils::publish("Grideye json", json);
+  }
+};
+GridEyeSupport gridEyeSupport;
+
+void JSonizer::addFirstSetting(String& json, String key, String val) {
+    json.concat("\"");
+    json.concat(key);
+    json.concat("\":\"");
+    json.concat(val);
+    json.concat("\"");
+}
+
+void JSonizer::addSetting(String& json, String key, String val) {
+    json.concat(",");
+    addFirstSetting(json, key, val);
+}
+
+String JSonizer::toString(bool b) {
+    if (b) {
+        return "true";
+    }
+    return "false";
+}
+
 String thermistor_test  = "1c002c001147343438323536";
 String photon_02        = "300040001347343438323536";
 String photon_05        = "19002a001347363336383438";
@@ -1315,6 +1296,105 @@ String photon_07        = "32002e000e47363433353735";
 String photon_08        = "500041000b51353432383931"; // Stove
 String photon_09        = "1f0027001347363336383437";
 String photon_10        = "410027001247363335343834";
+
+const int Utils::publishRateInSeconds = 5;
+bool Utils::publishDelay = true;
+int Utils::setInt(String command, int& i, int lower, int upper) {
+    int tempMin = command.toInt();
+    if (tempMin > lower && tempMin < upper) {
+        i = tempMin;
+        return 1;
+    }
+    return -1;
+}
+void Utils::publish(String event, String data) {
+    Particle.publish(event, data, 1, PRIVATE);
+    if (publishDelay) {
+      delay(1000);
+    }
+}
+void Utils::publishJson() {
+    String json("{");
+    JSonizer::addFirstSetting(json, "githubHash", githubHash);
+    JSonizer::addSetting(json, "publishRateInSeconds", String(publishRateInSeconds));
+    JSonizer::addSetting(json, "publishDelay", JSonizer::toString(publishDelay));
+    json.concat("}");
+    publish("Utils json", json);
+}
+String Utils::getName() {
+  // Getting the display to react quickly for Maker Faire
+  // takes precedence over publishing to the Particle cloud.
+  Utils::publishDelay = false;
+  String id = System.deviceID();
+  String location = "Unknown";
+  if (id.equals(photon_02)) {
+    location = "Faire 2 IR";
+  }
+  if (id.equals(photon_05)) {
+    location = "Home 5 IR";
+  }
+  if (id.equals(photon_07)) {
+    location = "Faire 7 IR";
+  }
+  if (id.equals(photon_08)) {
+    location = "Stove";
+    Utils::publishDelay = true;
+  }
+  if (id.equals(photon_10)) {
+    location = "Home 10 IR";
+  }
+  location.concat(" heat sensor");
+  return location;
+}
+
+String TimeSupport::getSettings() {
+    String json("{");
+    JSonizer::addFirstSetting(json, "lastSyncMillis", String(lastSyncMillis));
+    JSonizer::addSetting(json, "timeZoneOffset", String(timeZoneOffset));
+    JSonizer::addSetting(json, "timeZoneString", String(timeZoneString));
+    JSonizer::addSetting(json, "internalTime", nowZ());
+    json.concat("}");
+    return json;
+}
+
+TimeSupport::TimeSupport(int timeZoneOffset, String timeZoneString) {
+    this->ONE_DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
+    this->lastSyncMillis = millis();
+    this->timeZoneOffset = timeZoneOffset;
+    this->timeZoneString = timeZoneString;
+    Time.zone(timeZoneOffset);
+    Particle.syncTime();
+    lastSyncMillis = millis();
+}
+
+String TimeSupport::timeStrZ(time_t t) {
+    String fmt("%a %b %d %H:%M:%S ");
+    fmt.concat(timeZoneString);
+    fmt.concat(" %Y");
+    return Time.format(t, fmt);
+}
+
+String TimeSupport::nowZ() {
+    return timeStrZ(Time.now());
+}
+
+void TimeSupport::handleTime() {
+    if (millis() - lastSyncMillis > ONE_DAY_IN_MILLISECONDS) {    // If it's been a day since last sync...
+                                                            // Request time synchronization from the Particle Cloud
+        Particle.syncTime();
+        lastSyncMillis = millis();
+    }
+}
+
+int TimeSupport::setTimeZoneOffset(String command) {
+    timeZoneString = "???";
+    return Utils::setInt(command, timeZoneOffset, -24, 24);
+}
+
+void TimeSupport::publishJson() {
+    Utils::publish("TimeSupport", getSettings());
+}
+TimeSupport    timeSupport(-8, "PST");
 
 class SensorData {
   private:
@@ -1376,99 +1456,33 @@ class ThermistorSensor {
         }
         return NULL;
     }
+    String getName() {
+      // Getting the display to react quickly for Maker Faire
+      // takes precedence over publishing to the Particle cloud.
+      Utils::publishDelay = false;
+      String id = System.deviceID();
+      String location = "Unknown";
+      if (id.equals(photon_02)) {
+        location = "Faire 2 IR";
+      }
+      if (id.equals(photon_05)) {
+        location = "Home 5 IR";
+      }
+      if (id.equals(photon_07)) {
+        location = "Faire 7 IR";
+      }
+      if (id.equals(photon_08)) {
+        location = "Stove";
+        Utils::publishDelay = true;
+      }
+      if (id.equals(photon_10)) {
+        location = "Home 10 IR";
+      }
+      location.concat(" heat sensor");
+      return location;
+    }
 };
 ThermistorSensor thermistorSensor;
-
-class GridEyeSupport {
-private:
-  GridEYE grideye;
-  String  mostRecentData;
-  float   factor = 1.0;
-
-  String getName() {
-    // Getting the display to react quickly for Maker Faire
-    // takes precedence over publishing to the Particle cloud.
-    publishDelay = false;
-    String id = System.deviceID();
-    String location = "Unknown";
-    if (id.equals(photon_02)) {
-      location = "Faire 2 IR";
-    }
-    if (id.equals(photon_05)) {
-      location = "Home 5 IR";
-    }
-    if (id.equals(photon_07)) {
-      location = "Faire 7 IR";
-    }
-    if (id.equals(photon_08)) {
-      location = "Stove";
-      publishDelay = true;
-    }
-    if (id.equals(photon_10)) {
-      location = "Home 10 IR";
-    }
-    location.concat(" heat sensor");
-    return location;
-  }
-
-public:
-  int     mostRecentValue = INT_MIN;
-  boolean enabled = false;
-
-  void begin() {
-    if (enabled) {
-      grideye.begin();
-    }
-  }
-
-  // This will take 15-20 seconds if the GridEye isn't connected.
-  int readValue() {
-    if (enabled) {
-      float total = 0;
-      mostRecentData = String("");
-      for (int i = 0; i < 64; i++) {
-        int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
-        total += t;
-        if (i > 0) {
-          mostRecentData.concat(",");
-        }
-        mostRecentData.concat(String(t));
-      }
-      mostRecentValue = (int)(this->factor * total / 64);
-    }
-    return mostRecentValue;
-  }
-
-  int publishData() {
-    Utils::publish(getName(), String(mostRecentValue));
-    return 1;
-  }
-
-  void displayGrid(int lowestTempInF, int highestTempInF) {
-    if (!enabled) {
-      return;
-    }
-    srand(0);
-    int xSuperPixelSize = 6;
-    int ySuperPixelSize = 6;
-    int pixelSize = xSuperPixelSize * ySuperPixelSize;
-    int pixelVals[64];
-    for (int i = 0; i < 64; i++) {
-      int t = (int)(grideye.getPixelTemperature(i) * 9.0 / 5.0 + 32.0);
-      pixelVals[i] = map(t, lowestTempInF, highestTempInF, 0, pixelSize);
-    }
-    oledWrapper.displayArray(xSuperPixelSize, ySuperPixelSize, pixelVals);
-  }
-
-  void publishJson() {
-        String json("{");
-        JSonizer::addFirstSetting(json, "address", String((int)grideye.getI2CAddress()));
-        JSonizer::addSetting(json, "mostRecentData", mostRecentData);
-        json.concat("}");
-        Utils::publish("Grideye json", json);
-  }
-};
-GridEyeSupport gridEyeSupport;
 
 class OLEDDisplayer {
   private:
@@ -1507,7 +1521,7 @@ class OLEDDisplayer {
     }
     int switchDisp(String command) {
       showTemp = !showTemp;
-      publishDelay = showTemp;
+      Utils::publishDelay = showTemp;
       return 1;
     }
     int setDispTemps(String cmd) {
