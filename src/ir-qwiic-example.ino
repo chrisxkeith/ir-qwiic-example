@@ -1316,6 +1316,7 @@ void Utils::publish(String event, String data) {
 void Utils::publishJson() {
     String json("{");
     JSonizer::addFirstSetting(json, "githubHash", githubHash);
+    JSonizer::addSetting(json, "githubRepo", "https://github.com/chrisxkeith/ir-qwiic-example");
     JSonizer::addSetting(json, "publishRateInSeconds", String(publishRateInSeconds));
     JSonizer::addSetting(json, "publishDelay", JSonizer::toString(publishDelay));
     json.concat("}");
