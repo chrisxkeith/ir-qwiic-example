@@ -1066,9 +1066,9 @@ class TimeSupport {
 #include <math.h>
 
 class OLEDWrapper {
-  private:
-    MicroOLED* oled = new MicroOLED();
   public:
+    MicroOLED* oled = new MicroOLED();
+
     OLEDWrapper() {
         oled->begin();    // Initialize the OLED
         oled->clear(ALL); // Clear the display's internal memory
@@ -1680,6 +1680,18 @@ int testPatt(String command) {
   return 1;	
 }
 
+void display() {
+    if (currentSensor.getSensor() != NULL) {
+      oledWrapper.displayNumber(String(currentSensor.getValue()));
+    } else {
+      if (thermistorSensor.getSensor() != NULL) {
+        oledWrapper.displayNumber(String(thermistorSensor.getSensor()->getValue()));
+      } else {
+        oledDisplayer.display();
+      }
+    }
+}
+
 void setup() {
   Particle.publish("Debug", "Started setup...", 1, PRIVATE);
   // Start your preferred I2C object
@@ -1700,20 +1712,24 @@ void setup() {
   Particle.function("testPattern", testPatt);
   delay(2000);
 
-  if (thermistorSensor.getSensor() == NULL) {
-    int now = millis();
-    gridEyeSupport.readValue();
-    if (millis() - now > 5000) {
-      // GridEye probably not connected, will eventually semi-brick the Photon.
+  if (currentSensor.getSensor() != NULL) {
+    oledWrapper.oled = new MicroOLED(MODE_I2C, 9, 1, CS_DEFAULT);
+  } else {
+    if (thermistorSensor.getSensor() != NULL) {
       gridEyeSupport.enabled = false;
       gridEyeSupport.mostRecentValue = INT_MIN;
+      thermistorSensor.getSensor()->sample();
+    } else {
+      int now = millis();
+      gridEyeSupport.readValue();
+      if (millis() - now > 5000) {
+        // GridEye probably not connected, will eventually semi-brick the Photon.
+        gridEyeSupport.enabled = false;
+        gridEyeSupport.mostRecentValue = INT_MIN;
+      }
     }
-  } else {
-    gridEyeSupport.enabled = false;
-    gridEyeSupport.mostRecentValue = INT_MIN;
-    thermistorSensor.getSensor()->sample();
   }
-  oledDisplayer.display();
+  display();
   pubData("");
   Particle.publish("Debug", "Finished setup...", 1, PRIVATE);
 }
@@ -1730,7 +1746,7 @@ void loop() {
         gridEyeSupport.readValue();
       }
     }
-    oledDisplayer.display();
+    display();
     int thisSecond = millis() / 1000;
     if ((thisSecond % Utils::publishRateInSeconds) == 0 && thisSecond > lastPublish) {
       pubData("");
