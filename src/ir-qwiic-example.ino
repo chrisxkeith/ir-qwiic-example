@@ -1204,6 +1204,7 @@ class OLEDWrapper {
 };
 OLEDWrapper oledWrapper;
 
+// TODO : inherit from SensorData.
 class GridEyeSupport {
 private:
   GridEYE grideye;
@@ -1292,6 +1293,7 @@ String JSonizer::toString(bool b) {
 String thermistor_test  = "1c002c001147343438323536";
 String photon_02        = "300040001347343438323536";
 String photon_05        = "19002a001347363336383438";
+String photon_06        = "290048001647363335343834";
 String photon_07        = "32002e000e47363433353735";
 String photon_08        = "500041000b51353432383931"; // Stove
 String photon_09        = "1f0027001347363336383437";
@@ -1399,9 +1401,11 @@ TimeSupport    timeSupport(-8, "PST");
 
 class SensorData {
   private:
-    int     pin;
     String  name;
     double  factor; // apply to get human-readable values, e.g., degrees F
+
+  protected:
+    int     pin;
     int     lastVal;
 
   public:
@@ -1435,7 +1439,65 @@ class SensorData {
       Utils::publish(getName(), String(getValue()));
       return 1;
     }
+
+    SensorData* getSensor() {
+        return NULL;
+    }
 };
+
+class CurrentSensor : public SensorData {
+private:
+  // RMS voltage
+  const double vRMS = 120.0;      // Assumed or measured
+
+  // Parameters for measuring RMS current
+  const double offset = 1.65;     // Half the ADC max voltage
+  const int numTurns = 2000;      // 1:2000 transformer turns
+  const int rBurden = 100;        // Burden resistor value
+  const int numSamples = 1000;    // Number of samples before calculating RMS
+
+public:
+  CurrentSensor(String name, int pin) :
+    SensorData(pin, name, 1.0) {}
+
+  SensorData* getSensor() {
+      String id = System.deviceID();
+      if (id.equals(photon_06)) {
+          return this;
+      }
+      return NULL;
+  }
+
+  void sample() {
+    int sample;
+    double voltage;
+    double iPrimary;
+    double acc = 0;
+    double iRMS;
+    
+    // Take a number of samples and calculate RMS current
+    for ( int i = 0; i < numSamples; i++ ) {
+        
+        // Read ADC, convert to voltage, remove offset
+        sample = analogRead(this->pin);
+        voltage = (sample * 3.3) / 4096;
+        voltage = voltage - offset;
+        
+        // Calculate the sensed current
+        iPrimary = (voltage / rBurden) * numTurns;
+        
+        // Square current and add to accumulator
+        acc += pow(iPrimary, 2);
+    }
+    
+    // Calculate RMS from accumulated values
+    iRMS = sqrt(acc / numSamples);
+    
+    // Calculate apparent power and publish it
+    lastVal = vRMS * iRMS;
+  }
+};
+CurrentSensor currentSensor("Dryer current sensor", A0);
 
 class ThermistorSensor {
   private:
@@ -1560,11 +1622,15 @@ int switchDisp(String command) {
 }
 
 int pubData(String command) {
-  if (thermistorSensor.getSensor() == NULL) {
-    gridEyeSupport.publishData();
-  } else {
-    thermistorSensor.getSensor()->publishData();
-  }
+    if (currentSensor.getSensor() != NULL) {
+      currentSensor.publishData();
+    } else {
+      if (thermistorSensor.getSensor() != NULL) {
+        thermistorSensor.getSensor()->publishData();
+      } else {
+        gridEyeSupport.publishData();
+      }
+    }
   return 1;
 }
 
@@ -1655,10 +1721,14 @@ void setup() {
 int lastPublish = 0;
 void loop() {
     timeSupport.handleTime();
-    if (thermistorSensor.getSensor() == NULL) {
-      gridEyeSupport.readValue();
+    if (currentSensor.getSensor() != NULL) {
+      currentSensor.sample();
     } else {
-      thermistorSensor.getSensor()->sample();
+      if (thermistorSensor.getSensor() != NULL) {
+        thermistorSensor.getSensor()->sample();
+      } else {
+        gridEyeSupport.readValue();
+      }
     }
     oledDisplayer.display();
     int thisSecond = millis() / 1000;
