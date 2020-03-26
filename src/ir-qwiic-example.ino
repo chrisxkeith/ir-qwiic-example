@@ -1065,9 +1065,16 @@ class TimeSupport {
 // https://learn.sparkfun.com/tutorials/photon-oled-shield-hookup-guide
 #include <math.h>
 
+// If not defined, assumes QWIIC-cabled OLED.
+// #define USE_OLED_SHIELD
+
 class OLEDWrapper {
   public:
+#ifdef USE_OLED_SHIELD
     MicroOLED* oled = new MicroOLED();
+#else
+    MicroOLED* oled = new MicroOLED(MODE_I2C, 9, 1, CS_DEFAULT);
+#endif
 
     OLEDWrapper() {
         oled->begin();    // Initialize the OLED
@@ -1496,6 +1503,13 @@ public:
     // Calculate apparent power and publish it
     lastVal = vRMS * iRMS;
   }
+
+  void publishJson() {
+    String json("{");
+    JSonizer::addFirstSetting(json, "getSensor()", String((int)getSensor()));
+    json.concat("}");
+    Utils::publish("CurrentSensor", json);
+}
 };
 CurrentSensor currentSensor("Dryer current sensor", A0);
 
@@ -1646,6 +1660,8 @@ int pubSettings(String command) {
         oledWrapper.publishJson();
     } else if (command.compareTo("display") == 0) {
         oledDisplayer.publishJson();
+     } else if (command.compareTo("current") == 0) {
+        currentSensor.publishJson();
     } else {
         Utils::publish("GetSettings bad input", command);
     }
@@ -1712,9 +1728,6 @@ void setup() {
   Particle.function("testPattern", testPatt);
   delay(2000);
 
-  if (currentSensor.getSensor() != NULL) {
-    oledWrapper.oled = new MicroOLED(MODE_I2C, 9, 1, CS_DEFAULT);
-  } else {
     if (thermistorSensor.getSensor() != NULL) {
       gridEyeSupport.enabled = false;
       gridEyeSupport.mostRecentValue = INT_MIN;
@@ -1728,7 +1741,7 @@ void setup() {
         gridEyeSupport.mostRecentValue = INT_MIN;
       }
     }
-  }
+
   display();
   pubData("");
   Particle.publish("Debug", "Finished setup...", 1, PRIVATE);
