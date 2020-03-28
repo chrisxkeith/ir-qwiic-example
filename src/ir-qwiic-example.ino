@@ -1500,8 +1500,9 @@ public:
     // Calculate RMS from accumulated values
     iRMS = sqrt(acc / numSamples);
     
-    // Calculate apparent power and publish it
-    lastVal = vRMS * iRMS;
+    // Calculate apparent power and publish it.
+    // Round to nearest 10's place (until we figure out what the units are...).
+    lastVal = ((int)(((vRMS * iRMS) + 5.0) / 10.0)) * 10;
   }
 
   void publishJson() {
