@@ -1300,11 +1300,11 @@ String JSonizer::toString(bool b) {
 String thermistor_test  = "1c002c001147343438323536";
 String photon_02        = "300040001347343438323536";
 String photon_05        = "19002a001347363336383438";
-String photon_06        = "290048001647363335343834";
 String photon_07        = "32002e000e47363433353735";
 String photon_08        = "500041000b51353432383931"; // Stove
 String photon_09        = "1f0027001347363336383437";
 String photon_10        = "410027001247363335343834";
+String photon_14        = "28003d000147373334323233";
 
 const int Utils::publishRateInSeconds = 5;
 bool Utils::publishDelay = true;
@@ -1469,7 +1469,7 @@ public:
 
   SensorData* getSensor() {
       String id = System.deviceID();
-      if (id.equals(photon_06)) {
+      if (id.equals(photon_14)) {
           return this;
       }
       return NULL;
@@ -1577,7 +1577,7 @@ class OLEDDisplayer {
     }
 
   public:
-    bool showTemp = !System.deviceID().equals(photon_07);
+    bool showTemp = !System.deviceID().equals(photon_02);
     void display() {
       if (showTemp) {
         int temp = getTemp();
@@ -1715,9 +1715,6 @@ void setup() {
   Wire.begin();
   // Library assumes "Wire" for I2C but you can pass something else with begin() if you like
 
-  gridEyeSupport.enabled = true;
-  gridEyeSupport.begin();
-
   Serial.begin(115200);
 
   Particle.function("publishData", pubData);
@@ -1734,6 +1731,9 @@ void setup() {
       gridEyeSupport.mostRecentValue = INT_MIN;
       thermistorSensor.getSensor()->sample();
     } else {
+      gridEyeSupport.enabled = true;
+      gridEyeSupport.begin();
+
       int now = millis();
       gridEyeSupport.readValue();
       if (millis() - now > 5000) {
@@ -1743,6 +1743,9 @@ void setup() {
       }
     }
 
+  Utils::publishJson();
+  oledWrapper.display(githubHash.substring(0,6), 0);
+  delay(5000);
   display();
   pubData("");
   Particle.publish("Debug", "Finished setup...", 1, PRIVATE);
