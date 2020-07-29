@@ -1744,7 +1744,7 @@ void setup() {
     }
 
   Utils::publishJson();
-  oledWrapper.display(githubHash.substring(0,6), 0);
+  oledWrapper.display(githubHash.substring(0,6), 1);
   delay(5000);
   display();
   pubData("");
