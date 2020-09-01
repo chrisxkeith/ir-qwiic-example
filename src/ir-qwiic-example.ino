@@ -1516,16 +1516,12 @@ CurrentSensor currentSensor("Dryer current sensor", A0);
 
 class ThermistorSensor {
   private:
-    SensorData p8 = SensorData(A0, "Stove heat sensor", 0.036);
     SensorData p9 = SensorData(A0, "Outdoor Thermistor sensor 9", 0.036);
     SensorData p10 = SensorData(A0, "Outdoor Thermistor sensor 10", 0.036);
 
   public:
     SensorData* getSensor() {
         String id = System.deviceID();
-        if (id.equals(photon_08)) {
-            return &p8;
-        }
         if (id.equals(photon_09)) {
             return &p9;
         }
