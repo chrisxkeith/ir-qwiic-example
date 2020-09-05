@@ -13,4 +13,4 @@ Build Steps
 - Test by moving your hand slowly in front of the IR sensor
 - Verify the temperatures in https://console.particle.io/devices
 
-See also : https://docs.google.com/document/d/1y5eezyWU3r2t0xOoZXMUt0avSitQqU7zl2yLdCMw8qY/edit
+See this for Java code for server to monitor data : https://docs.google.com/document/d/1y5eezyWU3r2t0xOoZXMUt0avSitQqU7zl2yLdCMw8qY/edit
