@@ -1119,8 +1119,7 @@ class OLEDWrapper {
       }
     }
 
-   void superPixel(int xStart, int yStart, int xSuperPixelSize, int ySuperPixelSize, int pixelVal,
-         int left, int right, int top, int bottom) {
+   void superPixel(int xStart, int yStart, int xSuperPixelSize, int ySuperPixelSize, int pixelVal) {
      int pixelSize = xSuperPixelSize * ySuperPixelSize;
      if (pixelVal < 0) {
        pixelVal = 0;
@@ -1171,26 +1170,9 @@ class OLEDWrapper {
       for (int i = 0; i < 64; i++) {
         int x = (i % 8) * xSuperPixelSize;
         int y = (i / 8) * ySuperPixelSize;
-        int left = x;
-        int right = x;
-        int top = y;
-        int bottom = y;
-        if (x > 0) {
-          left = pixelVals[i - 1];
-        }
-        if (x < 7) {
-          right = pixelVals[i + 1];
-        }
-        if (y > 0) {
-          top = pixelVals[i - 8];
-        }
-        if (y < 7) {
-          top = pixelVals[i + 8];
-        }
         // This (admittedly confusing) switcheroo of x and y axes is to make the orientation
         // of the sensor (with logo reading correctly) match the orientation of the OLED.
-        superPixel(y, x, ySuperPixelSize, xSuperPixelSize, pixelVals[i],
-            left, right, top, bottom);
+        superPixel(y, x, ySuperPixelSize, xSuperPixelSize, pixelVals[i]);
       }
       oled->display();
     }
