@@ -1061,24 +1061,12 @@ class TimeSupport {
     void publishJson();
 };
 
-// If not defined, assumes QWIIC-cabled OLED.
-// #define USE_OLED_SHIELD
-
-#ifdef USE_OLED_SHIELD
-#include <SFE_MicroOLED.h>
-#else
 #include <SparkFunMicroOLED.h>
-// https://learn.sparkfun.com/tutorials/photon-oled-shield-hookup-guide
-#endif
 #include <math.h>
 
 class OLEDWrapper {
   public:
-#ifdef USE_OLED_SHIELD
-    MicroOLED* oled = new MicroOLED(9, 1);
-#else
-    MicroOLED* oled = new MicroOLED(MODE_I2C, 9, 1, CS_DEFAULT);
-#endif
+    MicroOLED* oled = new MicroOLED();
 
     OLEDWrapper() {
         oled->begin();    // Initialize the OLED
