@@ -1163,9 +1163,7 @@ class OLEDWrapper {
         pixelVals[i] = (int)(round(sqrt((float)(x * x + y * y)) * factor));
       }
       displayArray(xSuperPixelSize, ySuperPixelSize, pixelVals);
-      delay(5000);
-      displayArray(xSuperPixelSize, ySuperPixelSize, pixelVals);
-      delay(5000);	
+      delay(10000);
     }
 
     void displayArray(int xSuperPixelSize, int ySuperPixelSize, int pixelVals[]) {
@@ -1539,7 +1537,7 @@ class OLEDDisplayer {
     }
 
   public:
-    bool showTemp = !System.deviceID().equals(photon_02);
+    bool showTemp = !(System.deviceID().equals(photon_02) || System.deviceID().equals(photon_09));
     void display() {
       if (showTemp) {
         int temp = getTemp();
@@ -1659,15 +1657,21 @@ int testPatt(String command) {
   return 1;	
 }
 
+int lastDisplay = 0;
+const int DISPLAY_RATE_IN_MS = 150;
 void display() {
-    if (currentSensor.getSensor() != NULL) {
-      oledWrapper.displayNumber(String(currentSensor.getValue()));
-    } else {
-      if (thermistorSensor.getSensor() != NULL) {
-        oledWrapper.displayNumber(String(thermistorSensor.getSensor()->getValue()));
+    int thisMS = millis();
+    if (thisMS - lastDisplay > DISPLAY_RATE_IN_MS) {
+      if (currentSensor.getSensor() != NULL) {
+        oledWrapper.displayNumber(String(currentSensor.getValue()));
       } else {
-        oledDisplayer.display();
+        if (thermistorSensor.getSensor() != NULL) {
+          oledWrapper.displayNumber(String(thermistorSensor.getSensor()->getValue()));
+        } else {
+          oledDisplayer.display();
+        }
       }
+      lastDisplay = thisMS;
     }
 }
 
