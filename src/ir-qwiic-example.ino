@@ -1342,6 +1342,9 @@ String Utils::getName() {
     location = "Stove";
     Utils::publishDelay = true;
   }
+  if (id.equals(photon_09)) {
+    location = "Home 09 IR";
+  }
   if (id.equals(photon_10)) {
     location = "Home 10 IR";
   }
@@ -1508,44 +1511,15 @@ CurrentSensor currentSensor("Dryer current sensor", A0);
 
 class ThermistorSensor {
   private:
-    SensorData p9 = SensorData(A0, "Outdoor Thermistor sensor 9", 0.036);
     SensorData p10 = SensorData(A0, "Outdoor Thermistor sensor 10", 0.036);
 
   public:
     SensorData* getSensor() {
         String id = System.deviceID();
-        if (id.equals(photon_09)) {
-            return &p9;
-        }
         if (id.equals(photon_10)) {
             return &p10;
         }
         return NULL;
-    }
-    String getName() {
-      // Getting the display to react quickly for Maker Faire
-      // takes precedence over publishing to the Particle cloud.
-      Utils::publishDelay = false;
-      String id = System.deviceID();
-      String location = "Unknown";
-      if (id.equals(photon_02)) {
-        location = "Faire 2 IR";
-      }
-      if (id.equals(photon_05)) {
-        location = "Home 5 IR";
-      }
-      if (id.equals(photon_07)) {
-        location = "Faire 7 IR";
-      }
-      if (id.equals(photon_08)) {
-        location = "Stove";
-        Utils::publishDelay = true;
-      }
-      if (id.equals(photon_10)) {
-        location = "Home 10 IR";
-      }
-      location.concat(" heat sensor");
-      return location;
     }
 };
 ThermistorSensor thermistorSensor;
