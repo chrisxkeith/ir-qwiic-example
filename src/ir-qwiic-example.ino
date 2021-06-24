@@ -1061,10 +1061,40 @@ class TimeSupport {
     void publishJson();
 };
 
+#include <bitset>
+class SuperPixelPatterns {
+  private:
+    const static int NUM_SUPER_PIXELS = 64;
+    const static int SUPER_PIXEL_SIZE = 36;
+    const static int POSSIBLE_PIXEL_VALUES = SUPER_PIXEL_SIZE;
+    std::bitset<NUM_SUPER_PIXELS * SUPER_PIXEL_SIZE * POSSIBLE_PIXEL_VALUES> patterns;
+  public:
+    SuperPixelPatterns() {
+      for (int spIndex = 0; spIndex < NUM_SUPER_PIXELS; spIndex++) {
+        for (int spSize = 0; spSize < SUPER_PIXEL_SIZE; spSize++) {
+          for (int ppValue = 0; ppValue < POSSIBLE_PIXEL_VALUES; ppValue++) {
+            bool val = (rand() % POSSIBLE_PIXEL_VALUES) < (ppValue / 2);
+            patterns[spIndex * spSize * ppValue] = val;
+/*
+         int r = (rand() % (pixelSize - 2)) + 1;
+         if (r < pixelVal) { // lower value maps to white pixel.
+
+*/
+          }
+        }
+      }
+    }
+    bool getPixelAt(int superPixelNumber, int superPixelValue, int pixelPosition) {
+      return patterns[superPixelNumber * superPixelValue * pixelPosition];
+    }
+};
+
 #include <SparkFunMicroOLED.h>
 #include <math.h>
 
 class OLEDWrapper {
+  private:
+    SuperPixelPatterns superPixelPatterns;
   public:
     MicroOLED* oled = new MicroOLED();
 
@@ -1119,23 +1149,32 @@ class OLEDWrapper {
       }
     }
 
-   void superPixel(int xStart, int yStart, int xSuperPixelSize, int ySuperPixelSize, int pixelVal) {
+   void superPixel(int xStart, int yStart, int xSuperPixelSize, int ySuperPixelSize, int pixelVal, int pixelIndex) {
      int pixelSize = xSuperPixelSize * ySuperPixelSize;
      if (pixelVal < 0) {
        pixelVal = 0;
      } else if (pixelVal >= pixelSize) {
        pixelVal = pixelSize - 1;
      }
+     int pixelIndexInSuperPixel = 0;
+     const bool USE_FIXED_RAND = false; 
      for (int xi = xStart; xi < xStart + xSuperPixelSize; xi++) {
        for (int yi = yStart; yi < yStart + ySuperPixelSize; yi++) {
          verify(xStart, yStart, xi, yi);
-
-         // Value between 1 and pixelSize - 2,
-         // so pixelVal of 0 will have all pixels off
+         if (USE_FIXED_RAND) {
+          if (superPixelPatterns.getPixelAt(pixelIndex, pixelVal, pixelIndexInSuperPixel++)) {
+            oled->pixel(xi, yi);
+          }
+         } else {
+          // Value between 1 and pixelSize - 2,
+          // so pixelVal of 0 will have all pixels off
+          // and pixelVal of pixelSize - 1 will have all pixels on. 
          // and pixelVal of pixelSize - 1 will have all pixels on. 
-         int r = (rand() % (pixelSize - 2)) + 1;
-         if (r < pixelVal) { // lower value maps to white pixel.
-           oled->pixel(xi, yi);
+          // and pixelVal of pixelSize - 1 will have all pixels on. 
+          int r = (rand() % (pixelSize - 2)) + 1;
+          if (r < pixelVal) { // lower value maps to white pixel.
+            oled->pixel(xi, yi);
+          }
          }
        }
      }
@@ -1172,7 +1211,7 @@ class OLEDWrapper {
         int y = (i / 8) * ySuperPixelSize;
         // This (admittedly confusing) switcheroo of x and y axes is to make the orientation
         // of the sensor (with logo reading correctly) match the orientation of the OLED.
-        superPixel(y, x, ySuperPixelSize, xSuperPixelSize, pixelVals[i]);
+        superPixel(y, x, ySuperPixelSize, xSuperPixelSize, pixelVals[i], i);
       }
       oled->display();
     }
