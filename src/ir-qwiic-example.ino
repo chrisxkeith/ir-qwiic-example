@@ -1067,14 +1067,14 @@ class SuperPixelPatterns {
     const static int NUM_SUPER_PIXELS = 64;
     const static int SUPER_PIXEL_SIZE = 36;
     const static int POSSIBLE_PIXEL_VALUES = SUPER_PIXEL_SIZE;
-    std::bitset<NUM_SUPER_PIXELS * SUPER_PIXEL_SIZE * POSSIBLE_PIXEL_VALUES> patterns;
+    std::bitset<NUM_SUPER_PIXELS * POSSIBLE_PIXEL_VALUES * SUPER_PIXEL_SIZE> patterns;
   public:
     SuperPixelPatterns() {
-      for (int spIndex = 0; spIndex < NUM_SUPER_PIXELS; spIndex++) {
-        for (int spSize = 0; spSize < SUPER_PIXEL_SIZE; spSize++) {
-          for (int ppValue = 0; ppValue < POSSIBLE_PIXEL_VALUES; ppValue++) {
-            bool val = (rand() % POSSIBLE_PIXEL_VALUES) < (ppValue / 2);
-            patterns[spIndex * spSize * ppValue] = val;
+      for (int superPixelIndex = 0; superPixelIndex < NUM_SUPER_PIXELS; superPixelIndex++) {
+        for (int superPixelValue = 0; superPixelValue < POSSIBLE_PIXEL_VALUES; superPixelValue++) {
+          for (int pixelPosition = 0; pixelPosition < SUPER_PIXEL_SIZE; pixelPosition++) {
+            bool bitValue = (rand() % POSSIBLE_PIXEL_VALUES) < (SUPER_PIXEL_SIZE / 2);
+            patterns[superPixelIndex * superPixelValue * pixelPosition] = bitValue;
 /*
          int r = (rand() % (pixelSize - 2)) + 1;
          if (r < pixelVal) { // lower value maps to white pixel.
@@ -1084,8 +1084,8 @@ class SuperPixelPatterns {
         }
       }
     }
-    bool getPixelAt(int superPixelNumber, int superPixelValue, int pixelPosition) {
-      return patterns[superPixelNumber * superPixelValue * pixelPosition];
+    bool getPixelAt(int superPixelIndex, int superPixelValue, int pixelPosition) {
+      return patterns[superPixelIndex * superPixelValue * pixelPosition];
     }
 };
 
@@ -1157,25 +1157,12 @@ class OLEDWrapper {
        pixelVal = pixelSize - 1;
      }
      int pixelIndexInSuperPixel = 0;
-     const bool USE_FIXED_RAND = false; 
      for (int xi = xStart; xi < xStart + xSuperPixelSize; xi++) {
        for (int yi = yStart; yi < yStart + ySuperPixelSize; yi++) {
-         verify(xStart, yStart, xi, yi);
-         if (USE_FIXED_RAND) {
+          verify(xStart, yStart, xi, yi);
           if (superPixelPatterns.getPixelAt(pixelIndex, pixelVal, pixelIndexInSuperPixel++)) {
             oled->pixel(xi, yi);
           }
-         } else {
-          // Value between 1 and pixelSize - 2,
-          // so pixelVal of 0 will have all pixels off
-          // and pixelVal of pixelSize - 1 will have all pixels on. 
-         // and pixelVal of pixelSize - 1 will have all pixels on. 
-          // and pixelVal of pixelSize - 1 will have all pixels on. 
-          int r = (rand() % (pixelSize - 2)) + 1;
-          if (r < pixelVal) { // lower value maps to white pixel.
-            oled->pixel(xi, yi);
-          }
-         }
        }
      }
    }
