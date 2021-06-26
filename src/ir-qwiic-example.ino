@@ -1075,11 +1075,6 @@ class SuperPixelPatterns {
           for (int pixelPosition = 0; pixelPosition < SUPER_PIXEL_SIZE; pixelPosition++) {
             bool bitValue = (rand() % POSSIBLE_PIXEL_VALUES) < (SUPER_PIXEL_SIZE / 2);
             patterns[superPixelIndex * superPixelValue * pixelPosition] = bitValue;
-/*
-         int r = (rand() % (pixelSize - 2)) + 1;
-         if (r < pixelVal) { // lower value maps to white pixel.
-
-*/
           }
         }
       }
@@ -1545,7 +1540,7 @@ class OLEDDisplayer {
     }
 
   public:
-    bool showTemp = !(System.deviceID().equals(photon_02) || System.deviceID().equals(photon_09));
+    bool showTemp = !(System.deviceID().equals(photon_08) || System.deviceID().equals(photon_09));
     void display() {
       if (showTemp) {
         int temp = getTemp();
