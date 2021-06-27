@@ -1260,7 +1260,6 @@ public:
     if (!enabled) {
       return;
     }
-    srand(0);
     int xSuperPixelSize = 6;
     int ySuperPixelSize = 6;
     int pixelSize = xSuperPixelSize * ySuperPixelSize;
