@@ -1084,14 +1084,26 @@ class SuperPixelPatterns {
     }
 };
 
+// If not defined, assumes QWIIC-cabled OLED.
+// #define USE_OLED_SHIELD
+
+#ifdef USE_OLED_SHIELD
+#include <SFE_MicroOLED.h>
+#else
 #include <SparkFunMicroOLED.h>
+// https://learn.sparkfun.com/tutorials/photon-oled-shield-hookup-guide
+#endif
 #include <math.h>
 
 class OLEDWrapper {
   private:
     SuperPixelPatterns superPixelPatterns;
   public:
+#ifdef USE_OLED_SHIELD
     MicroOLED* oled = new MicroOLED();
+#else
+    MicroOLED* oled = new MicroOLED(MODE_I2C, 9, 1, CS_DEFAULT);
+#endif
 
     OLEDWrapper() {
         oled->begin();    // Initialize the OLED
