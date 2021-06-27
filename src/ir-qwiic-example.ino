@@ -1073,7 +1073,7 @@ class SuperPixelPatterns {
       for (int superPixelIndex = 0; superPixelIndex < NUM_SUPER_PIXELS; superPixelIndex++) {
         for (int superPixelValue = 0; superPixelValue < POSSIBLE_PIXEL_VALUES; superPixelValue++) {
           for (int pixelPosition = 0; pixelPosition < SUPER_PIXEL_SIZE; pixelPosition++) {
-            bool bitValue = (rand() % POSSIBLE_PIXEL_VALUES) < (SUPER_PIXEL_SIZE / 2);
+            bool bitValue = (rand() % POSSIBLE_PIXEL_VALUES) > (SUPER_PIXEL_SIZE / 2);
             patterns[superPixelIndex * superPixelValue * pixelPosition] = bitValue;
           }
         }
