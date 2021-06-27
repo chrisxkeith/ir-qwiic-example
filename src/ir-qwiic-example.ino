@@ -1551,7 +1551,7 @@ class OLEDDisplayer {
     }
 
   public:
-    bool showTemp = !(System.deviceID().equals(photon_08) || System.deviceID().equals(photon_09));
+    bool showTemp = true;
     void display() {
       if (showTemp) {
         int temp = getTemp();
