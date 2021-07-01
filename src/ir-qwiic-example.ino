@@ -1166,6 +1166,7 @@ class OLEDWrapper {
      for (int xi = xStart; xi < xStart + xSuperPixelSize; xi++) {
        for (int yi = yStart; yi < yStart + ySuperPixelSize; yi++) {
           verify(xStart, yStart, xi, yi);
+          //           if (superPixelPatterns.getPixelAt(pixelIndex, pixelVal, pixelIndexInSuperPixel++)) {
           // Value between 1 and pixelSize - 2,
           // so pixelVal of 0 will have all pixels off
           // and pixelVal of pixelSize - 1 will have all pixels on. 
@@ -1699,6 +1700,7 @@ void addToString(String& s, String msg) {
   s.concat(", ");
 }
 
+bool gridEyeSetupOK = true;
 void setup() {
   String diagnosticTimings("");
   addToString(diagnosticTimings, "Started setup");
@@ -1732,17 +1734,16 @@ void setup() {
     gridEyeSupport.readValue();
     addToString(diagnosticTimings, "After readValue()");
     if (millis() - now > 5000) {
-      // GridEye probably not connected, will eventually semi-brick the Photon.
-      gridEyeSupport.enabled = false;
-      gridEyeSupport.mostRecentValue = INT_MIN;
-      addToString(diagnosticTimings, "Disable gridEye");
+      // GridEye not found?
+      gridEyeSetupOK = false;
+      oledWrapper.display("Reset?", 1);
+    } else {
+      oledWrapper.display(githubHash.substring(0,6), 1);
+      delay(5000);
+      display();
     }
   }
-
   Utils::publishJson();
-  oledWrapper.display(githubHash.substring(0,6), 1);
-  delay(5000);
-  display();
   pubData("");
   addToString(diagnosticTimings, "Finished setup");
   Particle.publish("Diagnostic", diagnosticTimings, 1, PRIVATE);
@@ -1750,6 +1751,7 @@ void setup() {
 
 int lastPublish = 0;
 void loop() {
+  if (gridEyeSetupOK) {
     timeSupport.handleTime();
     if (currentSensor.getSensor() != NULL) {
       currentSensor.sample();
@@ -1766,4 +1768,5 @@ void loop() {
       pubData("");
       lastPublish = thisSecond;
     }
+  }
 }
