@@ -1085,13 +1085,12 @@ class SuperPixelPatterns {
 };
 
 // If not defined, assumes QWIIC-cabled OLED.
-// #define USE_OLED_SHIELD
+#define USE_OLED_SHIELD
 
 #ifdef USE_OLED_SHIELD
-#include <SFE_MicroOLED.h>
-#else
 #include <SparkFunMicroOLED.h>
-// https://learn.sparkfun.com/tutorials/photon-oled-shield-hookup-guide
+#else
+#include <SFE_MicroOLED.h>
 #endif
 #include <math.h>
 
@@ -1167,7 +1166,11 @@ class OLEDWrapper {
      for (int xi = xStart; xi < xStart + xSuperPixelSize; xi++) {
        for (int yi = yStart; yi < yStart + ySuperPixelSize; yi++) {
           verify(xStart, yStart, xi, yi);
-          if (superPixelPatterns.getPixelAt(pixelIndex, pixelVal, pixelIndexInSuperPixel++)) {
+          // Value between 1 and pixelSize - 2,
+          // so pixelVal of 0 will have all pixels off
+          // and pixelVal of pixelSize - 1 will have all pixels on. 
+          int r = (rand() % (pixelSize - 2)) + 1;
+          if (r < pixelVal) { // lower value maps to white pixel.
             oled->pixel(xi, yi);
           }
        }
@@ -1551,7 +1554,7 @@ class OLEDDisplayer {
     }
 
   public:
-    bool showTemp = true;
+    bool showTemp = false;
     void display() {
       if (showTemp) {
         int temp = getTemp();
@@ -1689,8 +1692,18 @@ void display() {
     }
 }
 
+void addToString(String& s, String msg) {
+  s.concat(msg);
+  s.concat(": ");
+  s.concat(millis());
+  s.concat(", ");
+}
+
 void setup() {
-  Particle.publish("Debug", "Started setup...", 1, PRIVATE);
+  String diagnosticTimings("");
+  addToString(diagnosticTimings, "Started setup");
+
+  Particle.publish("Diagnostic", diagnosticTimings, 1, PRIVATE);
   // Start your preferred I2C object
   Wire.begin();
   // Library assumes "Wire" for I2C but you can pass something else with begin() if you like
@@ -1706,29 +1719,33 @@ void setup() {
   Particle.function("testPattern", testPatt);
   delay(2000);
 
-    if (thermistorSensor.getSensor() != NULL) {
+  if (thermistorSensor.getSensor() != NULL) {
+    gridEyeSupport.enabled = false;
+    gridEyeSupport.mostRecentValue = INT_MIN;
+    thermistorSensor.getSensor()->sample();
+  } else {
+    gridEyeSupport.enabled = true;
+    addToString(diagnosticTimings, "Before gridEyeSupport.begin()");
+    gridEyeSupport.begin();
+    addToString(diagnosticTimings, "After");
+    int now = millis();
+    gridEyeSupport.readValue();
+    addToString(diagnosticTimings, "After readValue()");
+    if (millis() - now > 5000) {
+      // GridEye probably not connected, will eventually semi-brick the Photon.
       gridEyeSupport.enabled = false;
       gridEyeSupport.mostRecentValue = INT_MIN;
-      thermistorSensor.getSensor()->sample();
-    } else {
-      gridEyeSupport.enabled = true;
-      gridEyeSupport.begin();
-
-      int now = millis();
-      gridEyeSupport.readValue();
-      if (millis() - now > 5000) {
-        // GridEye probably not connected, will eventually semi-brick the Photon.
-        gridEyeSupport.enabled = false;
-        gridEyeSupport.mostRecentValue = INT_MIN;
-      }
+      addToString(diagnosticTimings, "Disable gridEye");
     }
+  }
 
   Utils::publishJson();
   oledWrapper.display(githubHash.substring(0,6), 1);
   delay(5000);
   display();
   pubData("");
-  Particle.publish("Debug", "Finished setup...", 1, PRIVATE);
+  addToString(diagnosticTimings, "Finished setup");
+  Particle.publish("Diagnostic", diagnosticTimings, 1, PRIVATE);
 }
 
 int lastPublish = 0;
