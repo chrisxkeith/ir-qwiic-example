@@ -1742,14 +1742,13 @@ void setup() {
     addToString(diagnosticTimings, "After readValue()");
     if (millis() - now > 5000) {
       // GridEye not found?
-      gridEyeSetupOK = false;
       oledWrapper.display("Reset?", 1);
     } else {
       oledWrapper.display(githubHash.substring(0,6), 1);
-      delay(5000);
-      display();
     }
   }
+  delay(5000);
+  display();
   Utils::publishJson();
   pubData("");
   addToString(diagnosticTimings, "Finished setup");
