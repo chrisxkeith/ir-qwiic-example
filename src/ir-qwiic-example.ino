@@ -1675,6 +1675,12 @@ int testPatt(String command) {
   return 1;	
 }
 
+int invertOLED(String command) {
+  bool invert = command.equals("1");	
+  oledWrapper.invert(invert);
+  return 1;	
+}
+
 int lastDisplay = 0;
 const int DISPLAY_RATE_IN_MS = 150;
 void display() {
@@ -1719,6 +1725,7 @@ void setup() {
   Particle.function("setDispTemps", setDispTemps);
   Particle.function("getHelp", getHelp);
   Particle.function("testPattern", testPatt);
+  Particle.function("invertOLED", invertOLED);
   delay(2000);
 
   if (thermistorSensor.getSensor() != NULL) {
