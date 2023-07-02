@@ -1555,7 +1555,7 @@ class OLEDDisplayer {
     }
 
   public:
-    bool showTemp = false;
+    bool showTemp = true;
     void display() {
       if (showTemp) {
         int temp = getTemp();
