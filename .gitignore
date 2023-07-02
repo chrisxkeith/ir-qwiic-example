@@ -32,5 +32,4 @@
 *.app
 
 photon_firmware_*
-lib/
 .vscode/
