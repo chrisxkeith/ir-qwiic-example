@@ -1257,6 +1257,7 @@ public:
 
   int publishData() {
     Utils::publish("Temperature", String(mostRecentValue));
+    Utils::publish("Sensor values", mostRecentData);
     return 1;
   }
 
