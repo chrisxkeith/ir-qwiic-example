@@ -1314,7 +1314,7 @@ String photon_09        = "1f0027001347363336383437";
 String photon_10        = "410027001247363335343834";
 String photon_14        = "28003d000147373334323233";
 
-const int Utils::publishRateInSeconds = 60;
+const int Utils::publishRateInSeconds = 5;
 bool Utils::publishDelay = true;
 int Utils::setInt(String command, int& i, int lower, int upper) {
     int tempMin = command.toInt();
