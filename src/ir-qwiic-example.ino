@@ -1256,7 +1256,7 @@ public:
   }
 
   int publishData() {
-    Utils::publish(Utils::getName(), String(mostRecentValue));
+    Utils::publish("Temperature", String(mostRecentValue));
     return 1;
   }
 
@@ -1364,7 +1364,7 @@ String Utils::getName() {
   if (id.equals(photon_10)) {
     location = "Home 10 IR";
   }
-  location.concat(" heat sensor");
+  location.concat(" temperature");
   return location;
 }
 
@@ -1718,7 +1718,7 @@ void setup() {
 
   Serial.begin(115200);
 
-  Particle.function("publishData", pubData);
+  Particle.function("getData", pubData);
   Particle.function("getSettings", pubSettings);
   Particle.function("switchDisplay", switchDisp);
   Particle.function("rawPublish", rawPublish);
