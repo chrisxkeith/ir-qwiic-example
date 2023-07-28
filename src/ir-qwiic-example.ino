@@ -1306,14 +1306,15 @@ String JSonizer::toString(bool b) {
     return "false";
 }
 
-String thermistor_test  = "1c002c001147343438323536";
+String photon_01        = "1c002c001147343438323536";
 String photon_02        = "300040001347343438323536";
 String photon_05        = "19002a001347363336383438";
 String photon_07        = "32002e000e47363433353735";
-String photon_08        = "500041000b51353432383931"; // Stove
+String photon_08        = "500041000b51353432383931";
 String photon_09        = "1f0027001347363336383437";
 String photon_10        = "410027001247363335343834";
 String photon_14        = "28003d000147373334323233";
+String photon_15        = "270037000a47373336323230";
 
 const int Utils::publishRateInSeconds = 5;
 bool Utils::publishDelay = true;
@@ -1527,14 +1528,18 @@ public:
 CurrentSensor currentSensor("Dryer current sensor", A0);
 
 class ThermistorSensor {
-  private:
-    SensorData p10 = SensorData(A0, "Outdoor Thermistor sensor 10", 0.036);
-
   public:
     SensorData* getSensor() {
         String id = System.deviceID();
-        if (id.equals(photon_10)) {
-            return &p10;
+        String photon_number = "";
+        if (id.equals(photon_01)) { photon_number = "01"; }
+        if (id.equals(photon_02)) { photon_number = "02"; }
+        if (id.equals(photon_10)) { photon_number = "10"; }
+        if (id.equals(photon_15)) { photon_number = "15"; }
+        if (photon_number.length() > 0) {
+          String event_name("Thermistor ");
+          event_name.concat(photon_number);
+          return new SensorData(A0, event_name, 0.036);
         }
         return NULL;
     }
