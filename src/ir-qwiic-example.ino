@@ -1037,7 +1037,7 @@ class JSonizer {
 
 class Utils {
   public:
-    static const int publishRateInSeconds;
+    static int publishRateInSeconds;
     static bool publishDelay;
     static int setInt(String command, int& i, int lower, int upper);
     static void publish(String event, String data);
@@ -1316,7 +1316,7 @@ String photon_10        = "410027001247363335343834";
 String photon_14        = "28003d000147373334323233";
 String photon_15        = "270037000a47373336323230";
 
-const int Utils::publishRateInSeconds = 5;
+int Utils::publishRateInSeconds = 5;
 bool Utils::publishDelay = true;
 int Utils::setInt(String command, int& i, int lower, int upper) {
     int tempMin = command.toInt();
@@ -1465,68 +1465,6 @@ class SensorData {
     }
 };
 
-class CurrentSensor : public SensorData {
-private:
-  // RMS voltage
-  const double vRMS = 120.0;      // Assumed or measured
-
-  // Parameters for measuring RMS current
-  const double offset = 1.65;     // Half the ADC max voltage
-  const int numTurns = 2000;      // 1:2000 transformer turns
-  const int rBurden = 100;        // Burden resistor value
-  const int numSamples = 1000;    // Number of samples before calculating RMS
-
-public:
-  CurrentSensor(String name, int pin) :
-    SensorData(pin, name, 1.0) {}
-
-  SensorData* getSensor() {
-      String id = System.deviceID();
-      if (id.equals(photon_14)) {
-          return this;
-      }
-      return NULL;
-  }
-
-  void sample() {
-    int sample;
-    double voltage;
-    double iPrimary;
-    double acc = 0;
-    double iRMS;
-    
-    // Take a number of samples and calculate RMS current
-    for ( int i = 0; i < numSamples; i++ ) {
-        
-        // Read ADC, convert to voltage, remove offset
-        sample = analogRead(this->pin);
-        voltage = (sample * 3.3) / 4096;
-        voltage = voltage - offset;
-        
-        // Calculate the sensed current
-        iPrimary = (voltage / rBurden) * numTurns;
-        
-        // Square current and add to accumulator
-        acc += pow(iPrimary, 2);
-    }
-    
-    // Calculate RMS from accumulated values
-    iRMS = sqrt(acc / numSamples);
-    
-    // Calculate apparent power and publish it.
-    // Round to nearest 10's place (until we figure out what the units are...).
-    lastVal = ((int)(((vRMS * iRMS) + 5.0) / 10.0)) * 10;
-  }
-
-  void publishJson() {
-    String json("{");
-    JSonizer::addFirstSetting(json, "getSensor()", String((int)getSensor()));
-    json.concat("}");
-    Utils::publish("CurrentSensor", json);
-}
-};
-CurrentSensor currentSensor("Dryer current sensor", A0);
-
 class ThermistorSensor {
   public:
     SensorData* getSensor() {
@@ -1537,6 +1475,7 @@ class ThermistorSensor {
         if (id.equals(photon_10)) { photon_number = "10"; }
         if (id.equals(photon_15)) { photon_number = "15"; }
         if (photon_number.length() > 0) {
+          Utils::publishRateInSeconds = 60 * 60; // once an hour is enough for correlating with weather forecast values.
           String event_name("Thermistor ");
           event_name.concat(photon_number);
           return new SensorData(A0, event_name, 0.036);
@@ -1621,15 +1560,13 @@ int switchDisp(String command) {
 }
 
 int pubData(String command) {
-    if (currentSensor.getSensor() != NULL) {
-      currentSensor.publishData();
-    } else {
-      if (thermistorSensor.getSensor() != NULL) {
-        thermistorSensor.getSensor()->publishData();
-      } else {
-        gridEyeSupport.publishData();
-      }
-    }
+  if (thermistorSensor.getSensor() != NULL) {
+    thermistorSensor.getSensor()->publishData();
+  } else if (gridEyeSupport.enabled) {
+    gridEyeSupport.publishData();
+  } else {
+    Utils::publish("Error", "thermistorSensor.getSensor() == NULL && !girdEyeSupport.enabled");
+  }
   return 1;
 }
 
@@ -1645,8 +1582,6 @@ int pubSettings(String command) {
         oledWrapper.publishJson();
     } else if (command.compareTo("display") == 0) {
         oledDisplayer.publishJson();
-     } else if (command.compareTo("current") == 0) {
-        currentSensor.publishJson();
     } else {
         Utils::publish("GetSettings bad input", command);
     }
@@ -1692,14 +1627,12 @@ const int DISPLAY_RATE_IN_MS = 150;
 void display() {
     int thisMS = millis();
     if (thisMS - lastDisplay > DISPLAY_RATE_IN_MS) {
-      if (currentSensor.getSensor() != NULL) {
-        oledWrapper.displayNumber(String(currentSensor.getValue()));
+      if (thermistorSensor.getSensor() != NULL) {
+        oledWrapper.displayNumber(String(thermistorSensor.getSensor()->getValue()));
+      } else if (gridEyeSupport.enabled) {
+        oledDisplayer.display();
       } else {
-        if (thermistorSensor.getSensor() != NULL) {
-          oledWrapper.displayNumber(String(thermistorSensor.getSensor()->getValue()));
-        } else {
-          oledDisplayer.display();
-        }
+        oledWrapper.display("Unknown config!", 1);
       }
       lastDisplay = thisMS;
     }
@@ -1712,7 +1645,6 @@ void addToString(String& s, String msg) {
   s.concat(", ");
 }
 
-bool gridEyeSetupOK = true;
 void setup() {
   String diagnosticTimings("");
   addToString(diagnosticTimings, "Started setup");
@@ -1763,22 +1695,16 @@ void setup() {
 
 int lastPublish = 0;
 void loop() {
-  if (gridEyeSetupOK) {
-    timeSupport.handleTime();
-    if (currentSensor.getSensor() != NULL) {
-      currentSensor.sample();
-    } else {
-      if (thermistorSensor.getSensor() != NULL) {
-        thermistorSensor.getSensor()->sample();
-      } else {
-        gridEyeSupport.readValue();
-      }
-    }
-    display();
-    int thisSecond = millis() / 1000;
-    if ((thisSecond % Utils::publishRateInSeconds) == 0 && thisSecond > lastPublish) {
-      pubData("");
-      lastPublish = thisSecond;
-    }
+  timeSupport.handleTime();
+  if (thermistorSensor.getSensor() != NULL) {
+    thermistorSensor.getSensor()->sample();
+  } else if (gridEyeSupport.enabled) {
+    gridEyeSupport.readValue();
+  }
+  display();
+  int thisSecond = millis() / 1000;
+  if ((thisSecond % Utils::publishRateInSeconds) == 0 && thisSecond > lastPublish) {
+    pubData("");
+    lastPublish = thisSecond;
   }
 }
