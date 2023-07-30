@@ -1479,7 +1479,7 @@ class ThermistorSensor {
         if (id.equals(photon_10)) { photon_number = "10"; }
         if (id.equals(photon_15)) { photon_number = "15"; }
         if (photon_number.length() > 0) {
-          Utils::publishRateInSeconds = 60 * 60; // once an hour is enough for correlating with weather forecast values.
+          Utils::publishRateInSeconds = 10; // Set to an hour for correlating with weather forecast values?
           String event_name("Thermistor ");
           event_name.concat(photon_number);
           sensorData = new SensorData(A0, event_name, 0.036);
@@ -1689,8 +1689,7 @@ void setup() {
     gridEyeSupport.readValue();
     addToString(diagnosticTimings, "After readValue()");
     if (millis() - now > 5000) {
-      // GridEye not found?
-      oledWrapper.display("Reset?", 1);
+      oledWrapper.display("GridEye not found?", 1);
     } else {
       oledWrapper.display(githubHash.substring(0,6), 1);
     }
