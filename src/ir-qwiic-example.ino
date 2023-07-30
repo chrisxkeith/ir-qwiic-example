@@ -1279,7 +1279,9 @@ public:
   void publishJson() {
         String json("{");
         JSonizer::addFirstSetting(json, "address", String((int)grideye.getI2CAddress()));
+        JSonizer::addSetting(json, "factor", String(factor));
         JSonizer::addSetting(json, "mostRecentData", mostRecentData);
+        JSonizer::addSetting(json, "enabled", JSonizer::toString(enabled));
         json.concat("}");
         Utils::publish("Grideye json", json);
   }
@@ -1466,8 +1468,10 @@ class SensorData {
 };
 
 class ThermistorSensor {
+  private:
+    SensorData* sensorData = NULL;
   public:
-    SensorData* getSensor() {
+    ThermistorSensor() {
         String id = System.deviceID();
         String photon_number = "";
         if (id.equals(photon_01)) { photon_number = "01"; }
@@ -1478,9 +1482,11 @@ class ThermistorSensor {
           Utils::publishRateInSeconds = 60 * 60; // once an hour is enough for correlating with weather forecast values.
           String event_name("Thermistor ");
           event_name.concat(photon_number);
-          return new SensorData(A0, event_name, 0.036);
+          sensorData = new SensorData(A0, event_name, 0.036);
         }
-        return NULL;
+    }
+    SensorData* getSensor() {
+        return sensorData;
     }
 };
 ThermistorSensor thermistorSensor;
@@ -1622,20 +1628,24 @@ int invertOLED(String command) {
   return 1;	
 }
 
+void doDisplay() {
+  if (thermistorSensor.getSensor() != NULL) {
+    oledWrapper.displayNumber(String(thermistorSensor.getSensor()->getValue()));
+  } else if (gridEyeSupport.enabled) {
+    oledDisplayer.display();
+  } else {
+    oledWrapper.display("Unknown config!", 1);
+  }
+}
+
 int lastDisplay = 0;
 const int DISPLAY_RATE_IN_MS = 150;
 void display() {
-    int thisMS = millis();
-    if (thisMS - lastDisplay > DISPLAY_RATE_IN_MS) {
-      if (thermistorSensor.getSensor() != NULL) {
-        oledWrapper.displayNumber(String(thermistorSensor.getSensor()->getValue()));
-      } else if (gridEyeSupport.enabled) {
-        oledDisplayer.display();
-      } else {
-        oledWrapper.display("Unknown config!", 1);
-      }
-      lastDisplay = thisMS;
-    }
+  int thisMS = millis();
+  if (thisMS - lastDisplay > DISPLAY_RATE_IN_MS) {
+    doDisplay();
+  }
+  lastDisplay = thisMS;
 }
 
 void addToString(String& s, String msg) {
@@ -1686,8 +1696,12 @@ void setup() {
     }
   }
   delay(5000);
-  display();
+  doDisplay();
   Utils::publishJson();
+  timeSupport.publishJson();
+  gridEyeSupport.publishJson();
+  oledWrapper.publishJson();
+  oledDisplayer.publishJson();  
   pubData("");
   addToString(diagnosticTimings, "Finished setup");
   Particle.publish("Diagnostic", diagnosticTimings, 1, PRIVATE);
