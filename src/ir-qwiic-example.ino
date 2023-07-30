@@ -1425,6 +1425,9 @@ class SensorData {
   private:
     String  name;
     double  factor; // apply to get human-readable values, e.g., degrees F
+    int     nSamples;
+    double  total;
+    const int SAMPLE_INTERVAL_IN_MS = 150;
 
   protected:
     int     pin;
@@ -1436,6 +1439,7 @@ class SensorData {
         this->name = name;
         this->factor = factor;
         this->lastVal = INT_MIN;
+        this->clear();
         pinMode(pin, INPUT);
     }
     
@@ -1447,14 +1451,28 @@ class SensorData {
         } else {
             lastVal = digitalRead(pin);
         }
+        total += lastVal;
+        nSamples++;
+    }
+
+    void sampleMany() {
+      int start = millis();
+      while (millis() - start < SAMPLE_INTERVAL_IN_MS) {
+        sample();
+      }
     }
     
     int applyFactor(int val) {
         return val * factor;
     }
 
+    void clear() {
+      nSamples = 0;
+      total = 0.0;
+    }
+
     int getValue() {
-        return applyFactor(lastVal);
+        return round(factor * total / nSamples);
     }
 
     int publishData() {
@@ -1628,22 +1646,18 @@ int invertOLED(String command) {
   return 1;	
 }
 
-void doDisplay() {
-  if (thermistorSensor.getSensor() != NULL) {
-    oledWrapper.displayNumber(String(thermistorSensor.getSensor()->getValue()));
-  } else if (gridEyeSupport.enabled) {
-    oledDisplayer.display();
-  } else {
-    oledWrapper.display("Unknown config!", 1);
-  }
-}
-
 int lastDisplay = 0;
 const int DISPLAY_RATE_IN_MS = 150;
 void display() {
   int thisMS = millis();
   if (thisMS - lastDisplay > DISPLAY_RATE_IN_MS) {
-    doDisplay();
+    if (thermistorSensor.getSensor() != NULL) {
+      oledWrapper.displayNumber(String(thermistorSensor.getSensor()->getValue()));
+    } else if (gridEyeSupport.enabled) {
+      oledDisplayer.display();
+    } else {
+      oledWrapper.display("Unknown config!", 1);
+    }
   }
   lastDisplay = thisMS;
 }
@@ -1695,7 +1709,7 @@ void setup() {
     }
   }
   delay(5000);
-  doDisplay();
+  display();
   Utils::publishJson();
   timeSupport.publishJson();
   gridEyeSupport.publishJson();
@@ -1710,7 +1724,7 @@ int lastPublish = 0;
 void loop() {
   timeSupport.handleTime();
   if (thermistorSensor.getSensor() != NULL) {
-    thermistorSensor.getSensor()->sample();
+    thermistorSensor.getSensor()->sampleMany();
   } else if (gridEyeSupport.enabled) {
     gridEyeSupport.readValue();
   }
@@ -1719,5 +1733,8 @@ void loop() {
   if ((thisSecond % Utils::publishRateInSeconds) == 0 && thisSecond > lastPublish) {
     pubData("");
     lastPublish = thisSecond;
+  }
+  if (thermistorSensor.getSensor() != NULL) {
+    thermistorSensor.getSensor()->clear();
   }
 }

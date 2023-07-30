@@ -8,7 +8,8 @@
             "initializer_list": "cpp",
             "utility": "cpp",
             "*.tcc": "cpp",
-            "new": "cpp"
+            "new": "cpp",
+            "cmath": "cpp"
         },
         "particle.targetDevice": "thermistor2_test",
         "particle.firmwareVersion": "0.8.0-rc.10",
