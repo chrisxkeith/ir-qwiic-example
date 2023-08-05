@@ -1476,6 +1476,7 @@ class SensorData {
     }
 
     int publishData() {
+      sampleMany();
       Utils::publish(getName(), String(getValue()));
       return 1;
     }
@@ -1498,9 +1499,7 @@ class ThermistorSensor {
         if (id.equals(photon_15)) { photon_number = "15"; }
         if (photon_number.length() > 0) {
           Utils::publishRateInSeconds = 60;
-          String event_name("Thermistor ");
-          event_name.concat(photon_number);
-          sensorData = new SensorData(A0, event_name, 0.036);
+          sensorData = new SensorData(A0, "Temperature", 0.036);
         }
     }
     SensorData* getSensor() {
