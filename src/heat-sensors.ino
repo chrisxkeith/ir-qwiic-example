@@ -1318,7 +1318,7 @@ String photon_10        = "410027001247363335343834";
 String photon_14        = "28003d000147373334323233";
 String photon_15        = "270037000a47373336323230";
 
-int Utils::publishRateInSeconds = 5;
+int Utils::publishRateInSeconds = 60;
 bool Utils::publishDelay = true;
 int Utils::setInt(String command, int& i, int lower, int upper) {
     int tempMin = command.toInt();
@@ -1498,7 +1498,6 @@ class ThermistorSensor {
         if (id.equals(photon_10)) { photon_number = "10"; }
         if (id.equals(photon_15)) { photon_number = "15"; }
         if (photon_number.length() > 0) {
-          Utils::publishRateInSeconds = 60;
           sensorData = new SensorData(A0, "Temperature", 0.036);
         }
     }
