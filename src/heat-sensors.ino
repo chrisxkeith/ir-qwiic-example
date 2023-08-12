@@ -1495,6 +1495,7 @@ class ThermistorSensor {
         String photon_number = "";
         if (id.equals(photon_01)) { photon_number = "01"; }
         if (id.equals(photon_02)) { photon_number = "02"; }
+        if (id.equals(photon_08)) { photon_number = "08"; }
         if (id.equals(photon_10)) { photon_number = "10"; }
         if (id.equals(photon_15)) { photon_number = "15"; }
         if (photon_number.length() > 0) {
