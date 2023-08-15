@@ -1042,7 +1042,6 @@ class Utils {
     static int setInt(String command, int& i, int lower, int upper);
     static void publish(String event, String data);
     static void publishJson();
-    static String getName();
 };
 
 class TimeSupport {
@@ -1343,35 +1342,6 @@ void Utils::publishJson() {
     json.concat("}");
     publish("Utils json", json);
 }
-String Utils::getName() {
-  // Getting the display to react quickly for Maker Faire
-  // takes precedence over publishing to the Particle cloud.
-  Utils::publishDelay = false;
-  String id = System.deviceID();
-  String location = "Unknown";
-  if (id.equals(photon_02)) {
-    location = "Faire 2 IR";
-  }
-  if (id.equals(photon_05)) {
-    location = "Home 5 IR";
-  }
-  if (id.equals(photon_07)) {
-    location = "Faire 7 IR";
-  }
-  if (id.equals(photon_08)) {
-    location = "Stove";
-    Utils::publishDelay = true;
-  }
-  if (id.equals(photon_09)) {
-    location = "Home 09 IR";
-  }
-  if (id.equals(photon_10)) {
-    location = "Home 10 IR";
-  }
-  location.concat(" temperature");
-  return location;
-}
-
 String TimeSupport::getSettings() {
     String json("{");
     JSonizer::addFirstSetting(json, "lastSyncMillis", String(lastSyncMillis));
@@ -1496,6 +1466,7 @@ class ThermistorSensor {
         if (id.equals(photon_01)) { photon_number = "01"; }
         if (id.equals(photon_02)) { photon_number = "02"; }
         if (id.equals(photon_08)) { photon_number = "08"; }
+        if (id.equals(photon_09)) { photon_number = "09"; }
         if (id.equals(photon_10)) { photon_number = "10"; }
         if (id.equals(photon_15)) { photon_number = "15"; }
         if (photon_number.length() > 0) {
