@@ -31,5 +31,5 @@
 *.out
 *.app
 
-photon_firmware_*
+*_firmware_*
 .vscode/

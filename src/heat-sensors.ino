@@ -1316,6 +1316,7 @@ String photon_09        = "1f0027001347363336383437";
 String photon_10        = "410027001247363335343834";
 String photon_14        = "28003d000147373334323233";
 String photon_15        = "270037000a47373336323230";
+String photon_17        = "0a10aced202194944a045200";
 
 int Utils::publishRateInSeconds = 60;
 bool Utils::publishDelay = true;
@@ -1459,22 +1460,31 @@ class SensorData {
 class ThermistorSensor {
   private:
     SensorData* sensorData = NULL;
+    String getPhotonNumber() {
+        String id = System.deviceID();
+        if (id.equals(photon_01)) { return "01"; }
+        if (id.equals(photon_02)) { return "02"; }
+        if (id.equals(photon_08)) { return "08"; }
+        if (id.equals(photon_09)) { return "09"; }
+        if (id.equals(photon_10)) { return "10"; }
+        if (id.equals(photon_15)) { return "15"; }
+        if (id.equals(photon_17)) { return "17"; }    
+        return "";    
+    }
   public:
     ThermistorSensor() {
-        String id = System.deviceID();
-        String photon_number = "";
-        if (id.equals(photon_01)) { photon_number = "01"; }
-        if (id.equals(photon_02)) { photon_number = "02"; }
-        if (id.equals(photon_08)) { photon_number = "08"; }
-        if (id.equals(photon_09)) { photon_number = "09"; }
-        if (id.equals(photon_10)) { photon_number = "10"; }
-        if (id.equals(photon_15)) { photon_number = "15"; }
-        if (photon_number.length() > 0) {
+        if (getPhotonNumber().length() > 0) {
           sensorData = new SensorData(A0, "Temperature", 0.035);
         }
     }
     SensorData* getSensor() {
         return sensorData;
+    }
+    void publishJson() {
+        String json("{");
+        JSonizer::addFirstSetting(json, "getPhotonNumber()", getPhotonNumber());
+        json.concat("}");
+        Utils::publish("ThermistorSensor", json);
     }
 };
 ThermistorSensor thermistorSensor;
@@ -1559,7 +1569,7 @@ int pubData(String command) {
   } else if (gridEyeSupport.enabled) {
     gridEyeSupport.publishData();
   } else {
-    Utils::publish("Error", "thermistorSensor.getSensor() == NULL && !girdEyeSupport.enabled");
+    Utils::publish("Error", "thermistorSensor.getSensor() == NULL && !gridEyeSupport.enabled");
   }
   return 1;
 }
@@ -1576,6 +1586,8 @@ int pubSettings(String command) {
         oledWrapper.publishJson();
     } else if (command.compareTo("display") == 0) {
         oledDisplayer.publishJson();
+    } else if (command.compareTo("thermistor") == 0) {
+        thermistorSensor.publishJson();
     } else {
         Utils::publish("GetSettings bad input", command);
     }
