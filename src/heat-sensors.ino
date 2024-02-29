@@ -1651,6 +1651,10 @@ void addToString(String& s, String msg) {
   s.concat(", ");
 }
 
+int setPublishRate(String command) {
+  return Utils::setInt(command, Utils::publishRateInSeconds, 2, 120);
+}
+
 void setup() {
   String diagnosticTimings("");
   addToString(diagnosticTimings, "Started setup");
@@ -1670,6 +1674,7 @@ void setup() {
   Particle.function("getHelp", getHelp);
   Particle.function("testPattern", testPatt);
   Particle.function("invertOLED", invertOLED);
+  Particle.function("setPubRate", setPublishRate);
   delay(2000);
 
   if (thermistorSensor.getSensor() != NULL) {
