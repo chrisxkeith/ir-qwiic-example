@@ -1046,15 +1046,16 @@ class Utils {
 
 class TimeSupport {
   private:
-    unsigned long ONE_DAY_IN_MILLISECONDS;
     unsigned long lastSyncMillis;
-    String timeZoneString;
-    String getSettings();
-  public:
     int timeZoneOffset;
-    TimeSupport(int timeZoneOffset, String timeZoneString);
-    String timeStrZ(time_t t);
-    String nowZ();
+    String getSettings();
+    bool isDST();
+    void setDST();
+    void doHandleTime();
+  public:
+    TimeSupport(int timeZoneOffset);
+    String timeStr(time_t t);
+    String now();
     void handleTime();
     int setTimeZoneOffset(String command);
     void publishJson();
@@ -1344,53 +1345,80 @@ void Utils::publishJson() {
     publish("Utils json", json);
 }
 String TimeSupport::getSettings() {
+    time_t n = Time.now();
+    time_t restarted = n - (millis() / 1000);
+    time_t lastSyncTime = restarted + (lastSyncMillis / 1000);
+
     String json("{");
-    JSonizer::addFirstSetting(json, "lastSyncMillis", String(lastSyncMillis));
+    JSonizer::addFirstSetting(json, "restarted", timeStr(restarted));
+    JSonizer::addSetting(json, "lastSyncMillis", String(lastSyncMillis));
+    JSonizer::addSetting(json, "lastSyncTime", timeStr(lastSyncTime));
     JSonizer::addSetting(json, "timeZoneOffset", String(timeZoneOffset));
-    JSonizer::addSetting(json, "timeZoneString", String(timeZoneString));
-    JSonizer::addSetting(json, "internalTime", nowZ());
+    JSonizer::addSetting(json, "isDST", JSonizer::toString(isDST()));
+    JSonizer::addSetting(json, "internalTime", now());
     json.concat("}");
     return json;
 }
 
-TimeSupport::TimeSupport(int timeZoneOffset, String timeZoneString) {
-    this->ONE_DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
-    this->lastSyncMillis = millis();
+TimeSupport::TimeSupport(int timeZoneOffset) {
     this->timeZoneOffset = timeZoneOffset;
-    this->timeZoneString = timeZoneString;
-    Time.zone(timeZoneOffset);
-    Particle.syncTime();
-    lastSyncMillis = millis();
+    this->doHandleTime();
 }
 
-String TimeSupport::timeStrZ(time_t t) {
-    String fmt("%a %b %d %H:%M:%S ");
-    fmt.concat(timeZoneString);
-    fmt.concat(" %Y");
-    return Time.format(t, fmt);
-}
-
-String TimeSupport::nowZ() {
-    return timeStrZ(Time.now());
-}
-
-void TimeSupport::handleTime() {
-    if (millis() - lastSyncMillis > ONE_DAY_IN_MILLISECONDS) {    // If it's been a day since last sync...
-                                                            // Request time synchronization from the Particle Cloud
-        Particle.syncTime();
-        lastSyncMillis = millis();
+void TimeSupport::setDST() {
+    if (isDST()) {
+      Time.beginDST();
+    } else {
+      Time.endDST();
     }
 }
 
-int TimeSupport::setTimeZoneOffset(String command) {
-    timeZoneString = "???";
-    return Utils::setInt(command, timeZoneOffset, -24, 24);
+bool TimeSupport::isDST() {
+  int dayOfMonth = Time.day();
+  int month = Time.month();
+  int dayOfWeek = Time.weekday();
+	if (month < 3 || month > 11) {
+		return false;
+	}
+	if (month > 3 && month < 11) {
+		return true;
+	}
+	int previousSunday = dayOfMonth - (dayOfWeek - 1);
+	if (month == 3) {
+		return previousSunday >= 8;
+	}
+	return previousSunday <= 0;
+}
+
+String TimeSupport::timeStr(time_t t) {
+    String fmt("%Y-%m-%dT%H:%M:%S");
+    return Time.format(t, fmt);
+}
+
+String TimeSupport::now() {
+    return timeStr(Time.now());
+}
+
+void TimeSupport::doHandleTime() {
+  Time.zone(this->timeZoneOffset);
+  Particle.syncTime();
+  this->setDST();
+  Particle.syncTime(); // Now that we know (mostly) if we're in daylight savings time.
+  this->lastSyncMillis = millis();
+}
+
+void TimeSupport::handleTime() {
+    static long unsigned int ONE_DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
+    if (millis() - lastSyncMillis > ONE_DAY_IN_MILLISECONDS) {    // If it's been a day since last sync...
+                                                            // Request time synchronization from the Particle Cloud
+        this->doHandleTime();
+    }
 }
 
 void TimeSupport::publishJson() {
     Utils::publish("TimeSupport", getSettings());
 }
-TimeSupport    timeSupport(-8, "PST");
+TimeSupport    timeSupport(-8);
 
 class SensorData {
   private:
