@@ -1024,8 +1024,6 @@ int16_t GridEYE::getRegister(unsigned char reg, int8_t len)
 }
 
 // Start CK's code 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-const String githubHash = "to be replaced manually (and code re-flashed) after 'git push'";
-
 #include <limits.h>
 
 class JSonizer {
@@ -1319,7 +1317,7 @@ String photon_14        = "28003d000147373334323233";
 String photon_15        = "270037000a47373336323230";
 String photon_17        = "0a10aced202194944a045200";
 
-int Utils::publishRateInSeconds = 60;
+int Utils::publishRateInSeconds = -1; // disable publishing
 bool Utils::publishDelay = true;
 int Utils::setInt(String command, int& i, int lower, int upper) {
     int tempMin = command.toInt();
@@ -1337,7 +1335,7 @@ void Utils::publish(String event, String data) {
 }
 void Utils::publishJson() {
     String json("{");
-    JSonizer::addFirstSetting(json, "githubHash", githubHash);
+    JSonizer::addFirstSetting(json, "Build:", "Tue, May 28, 2024 10:42:25 AM");
     JSonizer::addSetting(json, "githubRepo", "https://github.com/chrisxkeith/ir-qwiic-example");
     JSonizer::addSetting(json, "publishRateInSeconds", String(publishRateInSeconds));
     JSonizer::addSetting(json, "publishDelay", JSonizer::toString(publishDelay));
@@ -1719,8 +1717,6 @@ void setup() {
     addToString(diagnosticTimings, "After readValue()");
     if (millis() - now > 5000) {
       oledWrapper.display("GridEye not found?", 1);
-    } else {
-      oledWrapper.display(githubHash.substring(0,6), 1);
     }
   }
   delay(5000);
@@ -1745,7 +1741,9 @@ void loop() {
   }
   display();
   int thisSecond = millis() / 1000;
-  if ((thisSecond % Utils::publishRateInSeconds) == 0 && thisSecond > lastPublish) {
+  if ((Utils::publishRateInSeconds > 0) && 
+      (thisSecond % Utils::publishRateInSeconds) == 0 && 
+       thisSecond > lastPublish) {
     pubData("");
     lastPublish = thisSecond;
   }
